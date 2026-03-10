@@ -1,0 +1,223 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap');
+
+@layer base {
+  :root {
+    --background: 162 30% 96%;
+    --foreground: 200 20% 20%;
+    --card: 0 0% 100%;
+    --card-foreground: 200 20% 20%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 200 20% 20%;
+    --primary: 162 52% 72%;
+    --primary-foreground: 200 20% 20%;
+    --secondary: 47 87% 70%;
+    --secondary-foreground: 200 20% 20%;
+    --muted: 162 20% 90%;
+    --muted-foreground: 200 10% 40%;
+    --accent: 204 70% 53%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 204 70% 53%;
+    --input: 162 20% 85%;
+    --ring: 204 70% 53%;
+    --radius: 0.625rem;
+    
+    --mint-green: #98D8C8;
+    --mint-yellow: #F7DC6F;
+    --blue-border: #3498DB;
+    --dark-text: #2C3E50;
+    --light-bg: #F0F9F6;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Noto Sans Thai', sans-serif;
+  }
+}
+
+/* Islamic Art Patterns */
+.islamic-pattern {
+  background-image: 
+    radial-gradient(circle at 20% 50%, rgba(152, 216, 200, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 50%, rgba(247, 220, 111, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 50% 20%, rgba(52, 152, 219, 0.05) 0%, transparent 50%);
+}
+
+.geometric-border {
+  position: relative;
+}
+
+.geometric-border::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, 
+    var(--mint-green) 0%, 
+    var(--blue-border) 25%, 
+    var(--mint-yellow) 50%, 
+    var(--blue-border) 75%, 
+    var(--mint-green) 100%);
+}
+
+.geometric-border::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, 
+    var(--mint-green) 0%, 
+    var(--blue-border) 25%, 
+    var(--mint-yellow) 50%, 
+    var(--blue-border) 75%, 
+    var(--mint-green) 100%);
+}
+
+/* Islamic Geometric Decoration */
+.islamic-ornament {
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%233498DB' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* Card Styles */
+.mint-card {
+  background: linear-gradient(135deg, rgba(152, 216, 200, 0.15) 0%, rgba(255, 255, 255, 0.9) 100%);
+  border: 2px solid var(--blue-border);
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(52, 152, 219, 0.15);
+}
+
+.mint-card:hover {
+  box-shadow: 0 6px 20px rgba(52, 152, 219, 0.25);
+  transform: translateY(-2px);
+  transition: all 0.3s ease;
+}
+
+/* Button Styles */
+.btn-primary {
+  background: linear-gradient(135deg, var(--mint-green) 0%, #7BC8B4 100%);
+  border: 2px solid var(--blue-border);
+  color: var(--dark-text);
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #7BC8B4 0%, var(--mint-green) 100%);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, var(--mint-yellow) 0%, #E5C84C 100%);
+  border: 2px solid var(--blue-border);
+  color: var(--dark-text);
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+/* Tab Styles */
+.tab-active {
+  background: linear-gradient(135deg, var(--mint-green) 0%, #7BC8B4 100%);
+  border: 2px solid var(--blue-border);
+  color: var(--dark-text);
+  font-weight: 600;
+}
+
+.tab-inactive {
+  background: rgba(152, 216, 200, 0.2);
+  border: 1px solid rgba(52, 152, 219, 0.3);
+  color: var(--dark-text);
+}
+
+.tab-inactive:hover {
+  background: rgba(152, 216, 200, 0.4);
+}
+
+/* Header Styles */
+.header-gradient {
+  background: linear-gradient(135deg, 
+    rgba(152, 216, 200, 0.95) 0%, 
+    rgba(247, 220, 111, 0.85) 50%,
+    rgba(152, 216, 200, 0.95) 100%);
+  border-bottom: 3px solid var(--blue-border);
+}
+
+/* Navigation Styles */
+.nav-link {
+  position: relative;
+  padding: 0.5rem 1rem;
+  color: var(--dark-text);
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: var(--blue-border);
+  transition: all 0.3s ease;
+  transform: translateX(-50%);
+}
+
+.nav-link:hover::after {
+  width: 80%;
+}
+
+/* Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--light-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--mint-green);
+  border-radius: 4px;
+  border: 1px solid var(--blue-border);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #7BC8B4;
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* Admin Panel Styles */
+.admin-panel {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(240, 249, 246, 0.95) 100%);
+  border: 2px solid var(--blue-border);
+  border-radius: 16px;
+}
