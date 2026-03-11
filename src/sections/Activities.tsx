@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
 import { db, uploadMultipleImages } from '../lib/firebase';
-import { Plus, Edit2, Trash2, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader2, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
