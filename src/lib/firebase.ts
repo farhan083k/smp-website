@@ -3,7 +3,6 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
-// 1. Firebase Configuration
 const firebaseConfig = {
   apiKey: "AIzaSyC6PRh-hPF7vGdZUvVn8JOqOq3o4lQvXqA",
   authDomain: "smp-darussalam.firebaseapp.com",
@@ -13,101 +12,16 @@ const firebaseConfig = {
   appId: "1:329755172871:web:c01bf5f0b9f3d01d6ccaa2"
 };
 
-// 🔴 แก้ไข Error TS2305: ตรวจสอบว่า Config ถูกต้องหรือไม่
+// ✅ แก้ Error TS2349: ทำให้เรียกใช้งานเป็นฟังก์ชันได้
 export const isValidConfig = () => Boolean(firebaseConfig.apiKey);
 
-// 2. Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
-// 3. Export กุญแจสำคัญสำหรับใช้งานในส่วนต่างๆ
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 export const storage = getStorage(app);
-export { app };
 
-/** * ==========================================
- * FIRESTORE FUNCTIONS (จัดการข้อมูลตัวอักษร)
- * ==========================================
+/** * ฟังก์ชันอัปโหลดหลายรูปพร้อมกัน (รองรับสูงสุด 50 รูป)
  */
-
-// ดึงข้อมูลการตั้งค่าเว็บไซต์ (ชื่อโรงเรียน, โลโก้, แบนเนอร์)
-export const getSettings = async () => {
-  try {
-    const docRef = doc(db, 'settings', 'site');
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      return docSnap.data();
-    }
-    return null;
-  } catch (error) {
-    console.error('Error getting settings:', error);
-    return null;
-  }
-};
-
-// บันทึกการตั้งค่าเว็บไซต์
-export const saveSettings = async (settings: any) => {
-  try {
-    const docRef = doc(db, 'settings', 'site');
-    await setDoc(docRef, settings, { merge: true });
-    return true;
-  } catch (error) {
-    console.error('Error saving settings:', error);
-    return false;
-  }
-};
-
-// ติดตามการเปลี่ยนแปลงข้อมูลแบบ Real-time
-export const subscribeToSettings = (callback: (data: any) => void) => {
-  const docRef = doc(db, 'settings', 'site');
-  return onSnapshot(docRef, (docSnap) => {
-    if (docSnap.exists()) {
-      callback(docSnap.data());
-    }
-  }, (error) => {
-    console.error('Error subscribing to settings:', error);
-  });
-};
-
-/** * ==========================================
- * STORAGE FUNCTIONS (จัดการไฟล์รูปภาพ)
- * ==========================================
- */
-
-// ฟังก์ชันกลางสำหรับอัปโหลดรูปภาพ
-export const uploadImage = async (file: File, path: string): Promise<string | null> => {
-  try {
-    const storageRef = ref(storage, path);
-    await uploadBytes(storageRef, file);
-    const downloadURL = await getDownloadURL(storageRef);
-    return downloadURL;
-  } catch (error) {
-    console.error('Error uploading image:', error);
-    return null;
-  }
-};
-
-// เฉพาะทาง: อัปโหลดโลโก้
-export const uploadLogo = async (file: File): Promise<string | null> => {
-  return uploadImage(file, `logos/${Date.now()}_${file.name}`);
-};
-
-// เฉพาะทาง: อัปโหลดแบนเนอร์
-export const uploadBanner = async (file: File): Promise<string | null> => {
-  return uploadImage(file, `banners/${Date.now()}_${file.name}`);
-};
-
-// เฉพาะทาง: อัปโหลดรูปกิจกรรม
-export const uploadActivityImage = async (file: File): Promise<string | null> => {
-  return uploadImage(file, `activities/${Date.now()}_${file.name}`);
-};
-
-// เฉพาะทาง: อัปโหลดรูปบุคลากร
-export const uploadStaffImage = async (file: File): Promise<string | null> => {
-  return uploadImage(file, `staff/${Date.now()}_${file.name}`);
-};
-
-// ฟังก์ชันอัปโหลดหลายรูปพร้อมกัน
 export const uploadMultipleImages = async (files: FileList | File[], folder: string): Promise<string[]> => {
   const uploadPromises = Array.from(files).map(async (file) => {
     const fileName = `${Date.now()}_${file.name}`;
@@ -115,6 +29,19 @@ export const uploadMultipleImages = async (files: FileList | File[], folder: str
     await uploadBytes(storageRef, file);
     return getDownloadURL(storageRef);
   });
-
-  return Promise.all(uploadPromises); // รอให้อัปโหลดเสร็จทุกรูปแล้วส่งอาเรย์ของ URL กลับมา
+  return Promise.all(uploadPromises);
 };
+
+export const uploadStaffImage = async (file: File) => {
+  const storageRef = ref(storage, `staff/${Date.now()}_${file.name}`);
+  await uploadBytes(storageRef, file);
+  return getDownloadURL(storageRef);
+};
+
+export const uploadActivityImage = async (file: File) => {
+  const storageRef = ref(storage, `activities/${Date.now()}_${file.name}`);
+  await uploadBytes(storageRef, file);
+  return getDownloadURL(storageRef);
+};
+
+export { app };
