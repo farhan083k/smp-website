@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import imageCompression from 'browser-image-compression'; // 👈 นำเข้าเครื่องย่อรูป
 
 const firebaseConfig = {
   apiKey: "AIzaSyC6PRh-hPF7vGdZUvVn8JOqOq3o4lQvXqA",
@@ -12,7 +13,6 @@ const firebaseConfig = {
   appId: "1:329755172871:web:c01bf5f0b9f3d01d6ccaa2"
 };
 
-// ✅ แก้ Error TS2349
 export const isValidConfig = () => Boolean(firebaseConfig.apiKey);
 
 const app = initializeApp(firebaseConfig);
@@ -20,8 +20,9 @@ export const db = getFirestore(app);
 export const auth = getAuth(app);
 export const storage = getStorage(app);
 
-/** * ฟังก์ชันจัดการ Settings (แก้ Error TS2305 ใน SettingsContext)
- */
+// ==========================================
+// ส่วนของการดึงข้อมูลการตั้งค่าเว็บไซต์
+// ==========================================
 export const getSettings = async () => {
   const docSnap = await getDoc(doc(db, 'settings', 'site'));
   return docSnap.exists() ? docSnap.data() : null;
@@ -29,7 +30,7 @@ export const getSettings = async () => {
 
 export const saveSettings = async (settings: any) => {
   await setDoc(doc(db, 'settings', 'site'), settings, { merge: true });
-  return true; // 👈 เติมบรรทัดนี้เข้าไปเพื่อให้ Context รู้ว่าบันทึกเสร็จแล้ว
+  return true;
 };
 
 export const subscribeToSettings = (callback: (data: any) => void) => {
@@ -38,11 +39,35 @@ export const subscribeToSettings = (callback: (data: any) => void) => {
   });
 };
 
-/** * ฟังก์ชันอัปโหลดรูปภาพ (แก้ Error TS2305 ใน AdminSettings)
- */
+// ==========================================
+// 🚀 ระบบบีบอัดรูปภาพอัตโนมัติ
+// ==========================================
+const compressImage = async (file: File) => {
+  // ตั้งค่าเครื่องบีบอัด
+  const options = {
+    maxSizeMB: 0.5, // บีบให้ไฟล์ไม่เกิน 500KB (ประหยัดพื้นที่มากๆ)
+    maxWidthOrHeight: 1920, // ลดขนาดความกว้าง/ยาวสูงสุดไม่เกิน 1920px (ระดับ Full HD)
+    useWebWorker: true, // ให้ประมวลผลเบื้องหลัง เว็บจะได้ไม่ค้าง
+  };
+
+  try {
+    console.log(`ขนาดก่อนย่อ: ${file.size / 1024 / 1024} MB`);
+    const compressedFile = await imageCompression(file, options);
+    console.log(`ขนาดย่อแล้ว: ${compressedFile.size / 1024 / 1024} MB`);
+    return compressedFile;
+  } catch (error) {
+    console.error("เกิดข้อผิดพลาดในการย่อรูป:", error);
+    return file; // ถ้าย่อไม่สำเร็จ ให้ส่งไฟล์ต้นฉบับขึ้นไปแทน
+  }
+};
+
+// ==========================================
+// ส่วนของการอัปโหลดรูปภาพ
+// ==========================================
 export const uploadImage = async (file: File, path: string) => {
+  const compressedFile = await compressImage(file); // 👈 สั่งให้วิ่งผ่านเครื่องย่อรูปก่อน
   const storageRef = ref(storage, path);
-  await uploadBytes(storageRef, file);
+  await uploadBytes(storageRef, compressedFile);
   return getDownloadURL(storageRef);
 };
 
