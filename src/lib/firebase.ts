@@ -1,16 +1,9 @@
-// Firebase Configuration
-// ผู้ใช้ต้องแก้ไขค่าเหล่านี้หลังจากสร้าง Firebase Project
-import { getAuth } from 'firebase/auth'; // 👈 เติมบรรทัดนี้ที่บนสุดของไฟล์ lib/firebase.ts
 import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
-// TODO: แก้ไขค่าเหล่านี้หลังจากสร้าง Firebase Project
-// วิธีการ:
-// 1. ไปที่ https://console.firebase.google.com/
-// 2. สร้างโปรเจคใหม่
-// 3. เพิ่มแอปเว็บ
-// 4. คัดลอกค่า configuration มาใส่ที่นี่
+// 1. Firebase Configuration (ค่าของคุณที่ตั้งไว้เรียบร้อยแล้ว)
 const firebaseConfig = {
   apiKey: "AIzaSyC6PRh-hPF7vGdZUvVn8JOqOq3o4lQvXqA",
   authDomain: "smp-darussalam.firebaseapp.com",
@@ -19,44 +12,23 @@ const firebaseConfig = {
   messagingSenderId: "329755172871",
   appId: "1:329755172871:web:c01bf5f0b9f3d01d6ccaa2"
 };
-// ตัวอย่างค่าที่ต้องใส่ (หลังจากสร้าง Firebase Project):
-// const firebaseConfig = {
-//   apiKey: "AIzaSyB...",
-//   authDomain: "smp-darussalam.firebaseapp.com",
-//   projectId: "smp-darussalam",
-//   storageBucket: "smp-darussalam.appspot.com",
-//   messagingSenderId: "123456789",
-//   appId: "1:123456789:web:abcdef123456"
-// };
 
-// Check if Firebase config is valid
-const isValidConfig = () => {
-  return firebaseConfig.apiKey !== "YOUR_API_KEY" && 
-         firebaseConfig.projectId !== "YOUR_PROJECT_ID";
-};
+// 2. Initialize Firebase
+const app = initializeApp(firebaseConfig);
 
-let app: any = null;
-let db: any = null;
-let storage: any = null;
+// 3. Export กุญแจสำคัญสำหรับใช้งานในส่วนต่างๆ
+export const db = getFirestore(app);
+export const auth = getAuth(app);
+export const storage = getStorage(app);
+export { app };
 
-if (isValidConfig()) {
-  try {
-    app = initializeApp(firebaseConfig);
-    db = getFirestore(app);
-    storage = getStorage(app);
-    console.log('Firebase initialized successfully');
-  } catch (error) {
-    console.error('Firebase initialization error:', error);
-  }
-} else {
-  console.warn('Firebase not configured. Please update firebase.ts with your config.');
-}
+/** * ==========================================
+ * FIRESTORE FUNCTIONS (สำหรับจัดการข้อมูลตัวอักษร)
+ * ==========================================
+ */
 
-export { app, db, storage, isValidConfig };
-
-// Firestore functions
+// ดึงข้อมูลการตั้งค่าเว็บไซต์ (ชื่อโรงเรียน, โลโก้, แบนเนอร์)
 export const getSettings = async () => {
-  if (!db) return null;
   try {
     const docRef = doc(db, 'settings', 'site');
     const docSnap = await getDoc(docRef);
@@ -70,8 +42,8 @@ export const getSettings = async () => {
   }
 };
 
+// บันทึกการตั้งค่าเว็บไซต์
 export const saveSettings = async (settings: any) => {
-  if (!db) return false;
   try {
     const docRef = doc(db, 'settings', 'site');
     await setDoc(docRef, settings, { merge: true });
@@ -82,12 +54,8 @@ export const saveSettings = async (settings: any) => {
   }
 };
 
+// ติดตามการเปลี่ยนแปลงข้อมูลแบบ Real-time
 export const subscribeToSettings = (callback: (data: any) => void) => {
-  if (!db) {
-    console.warn('Firebase not configured, using localStorage only');
-    return () => {};
-  }
-  
   const docRef = doc(db, 'settings', 'site');
   return onSnapshot(docRef, (docSnap) => {
     if (docSnap.exists()) {
@@ -98,9 +66,13 @@ export const subscribeToSettings = (callback: (data: any) => void) => {
   });
 };
 
-// Storage functions
+/** * ==========================================
+ * STORAGE FUNCTIONS (สำหรับจัดการไฟล์รูปภาพ)
+ * ==========================================
+ */
+
+// ฟังก์ชันกลางสำหรับอัปโหลดรูปภาพ
 export const uploadImage = async (file: File, path: string): Promise<string | null> => {
-  if (!storage) return null;
   try {
     const storageRef = ref(storage, path);
     await uploadBytes(storageRef, file);
@@ -112,13 +84,12 @@ export const uploadImage = async (file: File, path: string): Promise<string | nu
   }
 };
 
+// เฉพาะทาง: อัปโหลดโลโก้
 export const uploadLogo = async (file: File): Promise<string | null> => {
   return uploadImage(file, `logos/${Date.now()}_${file.name}`);
 };
 
+// เฉพาะทาง: อัปโหลดแบนเนอร์
 export const uploadBanner = async (file: File): Promise<string | null> => {
   return uploadImage(file, `banners/${Date.now()}_${file.name}`);
 };
-
-// เติมบรรทัดนี้ลงไปที่ล่างสุดของไฟล์ src/lib/firebase.ts
-export const auth = getAuth(app);
