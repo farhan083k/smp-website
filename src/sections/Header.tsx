@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth'; // 👈 นำเข้าฟังก์ชัน Login/Logout
+import { auth } from '../lib/firebase'; // 👈 ดึงสายไฟจาก Firebase
 import { GraduationCap, Menu, X, User, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,19 +26,30 @@ export default function Header({ onLogin, isLoggedIn }: HeaderProps) {
   const [loginError, setLoginError] = useState('');
   const { settings } = useSettings();
 
-  const handleLogin = () => {
-    if (password === 'admin083') {
-      onLogin(true);
+  // 🔴 เปลี่ยนมาใช้การ Login ผ่าน Firebase
+  const handleLogin = async () => {
+    try {
+      setLoginError('');
+      // เราใช้ Email ที่เราไปสร้างไว้ใน Firebase Console
+      await signInWithEmailAndPassword(auth, 'admin@darussalam.ac.th', password);
+      
+      // เมื่อ Login สำเร็จ Firebase จะไปสะกิด App.tsx ให้เปลี่ยนสถานะเอง
       setLoginOpen(false);
       setPassword('');
-      setLoginError('');
-    } else {
-      setLoginError('รหัสผ่านไม่ถูกต้อง');
+    } catch (error: any) {
+      console.error(error);
+      setLoginError('รหัสผ่านไม่ถูกต้อง หรือยังไม่ได้เปิดระบบ Authentication');
     }
   };
 
-  const handleLogout = () => {
-    onLogin(false);
+  // 🔴 เปลี่ยนมาใช้การ Logout ผ่าน Firebase
+  const handleLogout = async () => {
+    try {
+      await signOut(auth); // สั่งให้ Firebase ลืมสถานะเรา
+      onLogin(false);
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
   };
 
   const scrollToSection = (sectionId: string) => {
@@ -50,7 +63,6 @@ export default function Header({ onLogin, isLoggedIn }: HeaderProps) {
   return (
     <>
       <header className="header-gradient sticky top-0 z-50">
-        {/* Islamic Pattern Overlay */}
         <div className="absolute inset-0 islamic-ornament opacity-30 pointer-events-none" />
         
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -59,22 +71,14 @@ export default function Header({ onLogin, isLoggedIn }: HeaderProps) {
             <div className="flex items-center space-x-3">
               <div className="bg-white/80 p-2 rounded-full border-2 border-[#3498DB] overflow-hidden">
                 {settings.logo ? (
-                  <img
-                    src={settings.logo}
-                    alt="Logo"
-                    className="h-8 w-8 object-contain"
-                  />
+                  <img src={settings.logo} alt="Logo" className="h-8 w-8 object-contain" />
                 ) : (
                   <GraduationCap className="h-8 w-8 text-[#2C3E50]" />
                 )}
               </div>
               <div className="hidden sm:block">
-                <h1 className="text-lg font-bold text-[#2C3E50] leading-tight">
-                  {settings.programName}
-                </h1>
-                <p className="text-sm text-[#2C3E50]/80">
-                  {settings.schoolName}
-                </p>
+                <h1 className="text-lg font-bold text-[#2C3E50] leading-tight">{settings.programName}</h1>
+                <p className="text-sm text-[#2C3E50]/80">{settings.schoolName}</p>
               </div>
             </div>
 
@@ -138,11 +142,7 @@ export default function Header({ onLogin, isLoggedIn }: HeaderProps) {
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="lg:hidden p-2 rounded-lg hover:bg-[#98D8C8]/30 transition-colors"
               >
-                {mobileMenuOpen ? (
-                  <X className="h-6 w-6 text-[#2C3E50]" />
-                ) : (
-                  <Menu className="h-6 w-6 text-[#2C3E50]" />
-                )}
+                {mobileMenuOpen ? <X className="h-6 w-6 text-[#2C3E50]" /> : <Menu className="h-6 w-6 text-[#2C3E50]" />}
               </button>
             </div>
           </div>
@@ -180,9 +180,7 @@ export default function Header({ onLogin, isLoggedIn }: HeaderProps) {
             </DialogHeader>
             <div className="space-y-4 pt-4">
               <div>
-                <label className="block text-sm font-medium text-[#2C3E50] mb-2">
-                  รหัสผ่าน
-                </label>
+                <label className="block text-sm font-medium text-[#2C3E50] mb-2">รหัสผ่าน</label>
                 <Input
                   type="password"
                   value={password}
@@ -192,15 +190,8 @@ export default function Header({ onLogin, isLoggedIn }: HeaderProps) {
                   onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                 />
               </div>
-              {loginError && (
-                <p className="text-red-500 text-sm text-center">{loginError}</p>
-              )}
-              <Button
-                onClick={handleLogin}
-                className="w-full btn-primary"
-              >
-                เข้าสู่ระบบ
-              </Button>
+              {loginError && <p className="text-red-500 text-sm text-center">{loginError}</p>}
+              <Button onClick={handleLogin} className="w-full btn-primary">เข้าสู่ระบบ</Button>
             </div>
           </DialogContent>
         </Dialog>
