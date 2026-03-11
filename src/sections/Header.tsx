@@ -62,14 +62,14 @@ export default function Header({ onLogin, isLoggedIn }: HeaderProps) {
         
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
-            {/* Logo Section - ปรับให้เต็มวงที่นี่ */}
+            {/* Logo Section - ปรับปรุงใหม่ให้เต็มวงกลม */}
             <div className="flex items-center space-x-3">
-              <div className="bg-white/80 rounded-full border-2 border-[#3498DB] h-14 w-14 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
+              <div className="bg-white rounded-full border-2 border-[#3498DB] h-14 w-14 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-md">
                 {settings.logo ? (
                   <img 
                     src={settings.logo} 
                     alt="Logo" 
-                    className="w-full h-full object-cover" // 👈 แก้ให้รูปเต็มพื้นที่และไม่เบี้ยว
+                    className="w-full h-full object-cover" // 👈 ขยายเต็มพื้นที่โดยไม่เสียสัดส่วน
                   />
                 ) : (
                   <GraduationCap className="h-8 w-8 text-[#2C3E50]" />
