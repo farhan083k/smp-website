@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import type { Announcement } from '@/types';
+
 
 interface AnnouncementsProps {
   isLoggedIn: boolean;
