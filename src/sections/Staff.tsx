@@ -1,5 +1,7 @@
-import { useState } from 'react';
-import { Users, Mail, GraduationCap, Plus, Edit2, Trash2, Save } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase'; // 👈 เชื่อมสายไฟเข้า Firebase
+import { Users, Mail, GraduationCap, Plus, Edit2, Trash2, X, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -8,15 +10,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import type { Staff } from '@/types';
 
 interface StaffProps {
   isLoggedIn: boolean;
 }
 
-const initialStaff: Staff[] = [
+// ข้อมูลตั้งต้น (จะถูกส่งขึ้น Firebase อัตโนมัติถ้าฐานข้อมูลยังว่างเปล่า)
+const initialStaff = [
   {
-    id: 1,
+    order: 1,
     name: 'นายอับดุลเลาะห์ สามาแอ',
     position: 'ครูประจำห้องเรียน SMP',
     subject: 'คณิตศาสตร์',
@@ -24,7 +26,7 @@ const initialStaff: Staff[] = [
     email: 'abdul.samaae@darussalam.ac.th',
   },
   {
-    id: 2,
+    order: 2,
     name: 'นางสาวนูรฮายาตี มะสาแม',
     position: 'ครูวิทยาศาสตร์',
     subject: 'ฟิสิกส์',
@@ -32,7 +34,7 @@ const initialStaff: Staff[] = [
     email: 'nurhayati.masamae@darussalam.ac.th',
   },
   {
-    id: 3,
+    order: 3,
     name: 'นายมูฮำหมัด อิสมาอีล',
     position: 'ครูวิทยาศาสตร์',
     subject: 'เคมี',
@@ -40,7 +42,7 @@ const initialStaff: Staff[] = [
     email: 'muhammad.ismail@darussalam.ac.th',
   },
   {
-    id: 4,
+    order: 4,
     name: 'นางฟาติมะ หะยีสมาแอ',
     position: 'ครูคณิตศาสตร์',
     subject: 'คณิตศาสตร์',
@@ -48,7 +50,7 @@ const initialStaff: Staff[] = [
     email: 'fatima.hayisamaae@darussalam.ac.th',
   },
   {
-    id: 5,
+    order: 5,
     name: 'นายอาหมัด อาลี',
     position: 'ครูภาษาอังกฤษ',
     subject: 'ภาษาอังกฤษ',
@@ -56,7 +58,7 @@ const initialStaff: Staff[] = [
     email: 'ahmad.ali@darussalam.ac.th',
   },
   {
-    id: 6,
+    order: 6,
     name: 'นางสาวอามีเนาะห์ ยูโซะ',
     position: 'ครูชีววิทยา',
     subject: 'ชีววิทยา',
@@ -66,11 +68,39 @@ const initialStaff: Staff[] = [
 ];
 
 export default function Staff({ isLoggedIn }: StaffProps) {
-  const [staff, setStaff] = useState<Staff[]>(initialStaff);
+  const [staff, setStaff] = useState<any[]>([]);
   const [isEditing, setIsEditing] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState<Partial<Staff>>({});
-  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<Partial<any>>({});
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+
+  // 🔴 1. ฟังก์ชันดึงข้อมูลจาก Firebase (และอัปโหลดข้อมูลตั้งต้นถ้ายังไม่มี)
+  useEffect(() => {
+    if (!db) return;
+
+    const initializeData = async () => {
+      const querySnapshot = await getDocs(collection(db, 'staff'));
+      if (querySnapshot.empty) {
+        console.log("No staff found, uploading initial data...");
+        for (const member of initialStaff) {
+          await addDoc(collection(db, 'staff'), member);
+        }
+      }
+    };
+
+    initializeData();
+
+    // ดึงข้อมูลมาแสดงแบบ Real-time (เรียงตามลำดับ order)
+    const q = query(collection(db, 'staff'), orderBy('order', 'asc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setStaff(fetchedData);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleAdd = () => {
     setEditingId(null);
@@ -80,33 +110,57 @@ export default function Staff({ isLoggedIn }: StaffProps) {
       subject: '',
       image: '',
       email: '',
+      order: staff.length + 1
     });
     setIsEditing(true);
   };
 
-  const handleEdit = (member: Staff) => {
+  const handleEdit = (member: any) => {
     setEditingId(member.id);
     setEditForm({ ...member });
     setIsEditing(true);
   };
 
-  const handleSave = () => {
+  // 🔴 2. ฟังก์ชันบันทึกข้อมูล
+  const handleSave = async () => {
     if (!editForm.name || !editForm.position) return;
 
-    if (editingId) {
-      setStaff(staff.map(s => 
-        s.id === editingId ? { ...s, ...editForm } as Staff : s
-      ));
-    } else {
-      const newId = Math.max(...staff.map(s => s.id), 0) + 1;
-      setStaff([...staff, { ...editForm, id: newId } as Staff]);
+    try {
+      if (editingId) {
+        // แก้ไข
+        const docRef = doc(db, 'staff', editingId);
+        await updateDoc(docRef, {
+          name: editForm.name,
+          position: editForm.position,
+          subject: editForm.subject || '',
+          image: editForm.image || '',
+          email: editForm.email || '',
+        });
+      } else {
+        // เพิ่มใหม่
+        await addDoc(collection(db, 'staff'), {
+          name: editForm.name,
+          position: editForm.position,
+          subject: editForm.subject || '',
+          image: editForm.image || '',
+          email: editForm.email || '',
+          order: editForm.order || 99
+        });
+      }
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error saving staff member:', error);
     }
-    setIsEditing(false);
   };
 
-  const handleDelete = (id: number) => {
-    setStaff(staff.filter(s => s.id !== id));
-    setDeleteConfirm(null);
+  // 🔴 3. ฟังก์ชันลบข้อมูล
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'staff', id));
+      setDeleteConfirm(null);
+    } catch (error) {
+      console.error('Error deleting staff member:', error);
+    }
   };
 
   return (
@@ -143,7 +197,7 @@ export default function Staff({ isLoggedIn }: StaffProps) {
               {/* Image */}
               <div className="relative h-64 overflow-hidden">
                 <img
-                  src={member.image}
+                  src={member.image || 'https://via.placeholder.com/300x300?text=No+Image'}
                   alt={member.name}
                   className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
@@ -271,6 +325,7 @@ export default function Staff({ isLoggedIn }: StaffProps) {
                 variant="outline"
                 className="flex-1 border-[#3498DB]"
               >
+                <X className="h-4 w-4 mr-2" />
                 ยกเลิก
               </Button>
             </div>
