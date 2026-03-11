@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase'; // 👈 เชื่อมสายไฟเข้า Firebase
 import { FolderOpen, Calendar, Clock, Plus, Edit2, Trash2, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,15 +18,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import type { Project } from '@/types';
 
 interface ProjectsProps {
   isLoggedIn: boolean;
 }
 
-const initialProjects: Project[] = [
+// ข้อมูลตั้งต้น (จะถูกส่งขึ้น Firebase อัตโนมัติถ้าฐานข้อมูลยังว่างเปล่า)
+const initialProjects = [
   {
-    id: 1,
+    order: 1, // ใช้สำหรับเรียงลำดับ
     title: 'โครงการค่ายวิทยาศาสตร์เชิงลึก',
     description: 'ค่ายวิทยาศาสตร์ระดับชาติสำหรับนักเรียนที่มีความสนใจด้านวิทยาศาสตร์ ได้รับการสนับสนุนจากสถาบันวิทยาศาสตร์และเทคโนโลยีแห่งประเทศไทย',
     image: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=400&h=300&fit=crop',
@@ -33,7 +35,7 @@ const initialProjects: Project[] = [
     endDate: '2026-04-05',
   },
   {
-    id: 2,
+    order: 2,
     title: 'โครงการแลกเปลี่ยนวัฒนธรรมกับสิงคโปร์',
     description: 'โครงการแลกเปลี่ยนวัฒนธรรมและการศึกษากับโรงเรียนชั้นนำในสิงคโปร์ ระยะเวลา 1 สัปดาห์',
     image: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=400&h=300&fit=crop',
@@ -42,7 +44,7 @@ const initialProjects: Project[] = [
     endDate: '2026-06-22',
   },
   {
-    id: 3,
+    order: 3,
     title: 'โครงการติวเข้มคณิตศาสตร์โอลิมปิก',
     description: 'โครงการติวเข้มเตรียมความพร้อมสำหรับการแข่งขันคณิตศาสตร์โอลิมปิกระดับชาติและนานาชาติ',
     image: 'https://images.unsplash.com/photo-1596495578065-6e0763fa1178?w=400&h=300&fit=crop',
@@ -51,7 +53,7 @@ const initialProjects: Project[] = [
     endDate: '2026-01-31',
   },
   {
-    id: 4,
+    order: 4,
     title: 'โครงการวิจัยเยาวชน',
     description: 'โครงการสนับสนุนให้นักเรียนทำโครงงานวิจัยในหัวข้อที่สนใจ ภายใต้การดูแลของอาจารย์ที่ปรึกษา',
     image: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=400&h=300&fit=crop',
@@ -64,15 +66,43 @@ const initialProjects: Project[] = [
 const statusLabels = {
   ongoing: { text: 'กำลังดำเนินการ', color: 'bg-blue-100 text-blue-700 border-blue-300' },
   completed: { text: 'เสร็จสิ้น', color: 'bg-green-100 text-green-700 border-green-300' },
-  upcoming: { text: ' upcoming', color: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
+  upcoming: { text: 'upcoming', color: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
 };
 
 export default function Projects({ isLoggedIn }: ProjectsProps) {
-  const [projects, setProjects] = useState<Project[]>(initialProjects);
+  const [projects, setProjects] = useState<any[]>([]);
   const [isEditing, setIsEditing] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState<Partial<Project>>({});
-  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<Partial<any>>({});
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+
+  // 🔴 1. ฟังก์ชันดึงข้อมูลจาก Firebase (และอัปโหลดข้อมูลตั้งต้น)
+  useEffect(() => {
+    if (!db) return;
+
+    const initializeData = async () => {
+      const querySnapshot = await getDocs(collection(db, 'projects'));
+      if (querySnapshot.empty) {
+        console.log("No projects found, uploading initial data...");
+        for (const proj of initialProjects) {
+          await addDoc(collection(db, 'projects'), proj);
+        }
+      }
+    };
+
+    initializeData();
+
+    // ดึงข้อมูลมาแสดงแบบ Real-time (เรียงตาม order)
+    const q = query(collection(db, 'projects'), orderBy('order', 'asc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setProjects(fetchedData);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleAdd = () => {
     setEditingId(null);
@@ -83,42 +113,75 @@ export default function Projects({ isLoggedIn }: ProjectsProps) {
       status: 'upcoming',
       startDate: '',
       endDate: '',
+      order: projects.length + 1
     });
     setIsEditing(true);
   };
 
-  const handleEdit = (project: Project) => {
+  const handleEdit = (project: any) => {
     setEditingId(project.id);
     setEditForm({ ...project });
     setIsEditing(true);
   };
 
-  const handleSave = () => {
+  // 🔴 2. ฟังก์ชันบันทึกข้อมูล
+  const handleSave = async () => {
     if (!editForm.title || !editForm.description) return;
 
-    if (editingId) {
-      setProjects(projects.map(p => 
-        p.id === editingId ? { ...p, ...editForm } as Project : p
-      ));
-    } else {
-      const newId = Math.max(...projects.map(p => p.id), 0) + 1;
-      setProjects([...projects, { ...editForm, id: newId } as Project]);
+    try {
+      if (editingId) {
+        // แก้ไขของเดิม
+        const docRef = doc(db, 'projects', editingId);
+        await updateDoc(docRef, {
+          title: editForm.title,
+          description: editForm.description,
+          image: editForm.image || '',
+          status: editForm.status || 'upcoming',
+          startDate: editForm.startDate || '',
+          endDate: editForm.endDate || '',
+        });
+      } else {
+        // เพิ่มของใหม่
+        await addDoc(collection(db, 'projects'), {
+          title: editForm.title,
+          description: editForm.description,
+          image: editForm.image || '',
+          status: editForm.status || 'upcoming',
+          startDate: editForm.startDate || '',
+          endDate: editForm.endDate || '',
+          order: editForm.order || 99
+        });
+      }
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error saving project:', error);
     }
-    setIsEditing(false);
   };
 
-  const handleDelete = (id: number) => {
-    setProjects(projects.filter(p => p.id !== id));
-    setDeleteConfirm(null);
+  // 🔴 3. ฟังก์ชันลบข้อมูล
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'projects', id));
+      setDeleteConfirm(null);
+    } catch (error) {
+      console.error('Error deleting project:', error);
+    }
   };
 
   const formatDate = (dateStr: string) => {
+    if (!dateStr) return 'ไม่ระบุ';
     const date = new Date(dateStr);
     return date.toLocaleDateString('th-TH', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
     });
+  };
+
+  // ฟังก์ชันช่วยดึงข้อมูลสถานะป้องกันเว็บพัง
+  const getStatusInfo = (statusKey: string) => {
+    const validKey = statusKey as keyof typeof statusLabels;
+    return statusLabels[validKey] || statusLabels['upcoming'];
   };
 
   return (
@@ -156,13 +219,13 @@ export default function Projects({ isLoggedIn }: ProjectsProps) {
                 {/* Image */}
                 <div className="relative w-full sm:w-48 h-48 sm:h-auto flex-shrink-0 overflow-hidden">
                   <img
-                    src={project.image}
+                    src={project.image || 'https://via.placeholder.com/400x300?text=No+Image'}
                     alt={project.title}
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                   <div className="absolute top-2 left-2">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${statusLabels[project.status].color}`}>
-                      {statusLabels[project.status].text}
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusInfo(project.status).color}`}>
+                      {getStatusInfo(project.status).text}
                     </span>
                   </div>
                 </div>
@@ -249,8 +312,8 @@ export default function Projects({ isLoggedIn }: ProjectsProps) {
                 สถานะ
               </label>
               <Select
-                value={editForm.status}
-                onValueChange={(value) => setEditForm({ ...editForm, status: value as Project['status'] })}
+                value={editForm.status || 'upcoming'}
+                onValueChange={(value) => setEditForm({ ...editForm, status: value })}
               >
                 <SelectTrigger className="border-[#3498DB]">
                   <SelectValue placeholder="เลือกสถานะ" />
@@ -258,7 +321,7 @@ export default function Projects({ isLoggedIn }: ProjectsProps) {
                 <SelectContent>
                   <SelectItem value="ongoing">กำลังดำเนินการ</SelectItem>
                   <SelectItem value="completed">เสร็จสิ้น</SelectItem>
-                  <SelectItem value="upcoming"> upcoming</SelectItem>
+                  <SelectItem value="upcoming">upcoming</SelectItem>
                 </SelectContent>
               </Select>
             </div>
