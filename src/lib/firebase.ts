@@ -14,7 +14,7 @@ const firebaseConfig = {
 };
 
 // 🔴 แก้ไข Error TS2305: ตรวจสอบว่า Config ถูกต้องหรือไม่
-export const isValidConfig = Boolean(firebaseConfig.apiKey);
+export const isValidConfig = () => Boolean(firebaseConfig.apiKey);
 
 // 2. Initialize Firebase
 const app = initializeApp(firebaseConfig);
