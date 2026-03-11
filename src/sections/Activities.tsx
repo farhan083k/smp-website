@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy, getDocs } from 'firebase/firestore';
 import { db, uploadActivityImage } from '../lib/firebase'; // 👈 นำเข้าฟังก์ชันอัปโหลดที่เราเพิ่มไว้
-import { CalendarDays, MapPin, Plus, Edit2, Trash2, X, Save, Upload, Loader2, Image as ImageIcon } from 'lucide-react';
+import { CalendarDays, MapPin, Plus, Edit2, Trash2, Save, Upload, Loader2, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
