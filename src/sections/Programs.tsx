@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy, setDoc, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase'; // 👈 เชื่อมสายไฟเข้า Firebase
 import { BookOpen, CheckCircle, Plus, Edit2, Trash2, X, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -161,7 +161,7 @@ export default function Programs({ isLoggedIn }: ProgramsProps) {
   };
 
   const removeFeature = (index: number) => {
-    const newFeatures = (editForm.features || []).filter((_, i) => i !== index);
+    const newFeatures = (editForm.features || []).filter((_: any, i: number) => i !== index);
     setEditForm({ ...editForm, features: newFeatures });
   };
 
