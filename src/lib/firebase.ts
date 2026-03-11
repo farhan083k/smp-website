@@ -3,7 +3,7 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
-// 1. Firebase Configuration (ค่าของคุณที่ตั้งไว้เรียบร้อยแล้ว)
+// 1. Firebase Configuration
 const firebaseConfig = {
   apiKey: "AIzaSyC6PRh-hPF7vGdZUvVn8JOqOq3o4lQvXqA",
   authDomain: "smp-darussalam.firebaseapp.com",
@@ -12,6 +12,9 @@ const firebaseConfig = {
   messagingSenderId: "329755172871",
   appId: "1:329755172871:web:c01bf5f0b9f3d01d6ccaa2"
 };
+
+// 🔴 แก้ไข Error TS2305: ตรวจสอบว่า Config ถูกต้องหรือไม่
+export const isValidConfig = Boolean(firebaseConfig.apiKey);
 
 // 2. Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -23,7 +26,7 @@ export const storage = getStorage(app);
 export { app };
 
 /** * ==========================================
- * FIRESTORE FUNCTIONS (สำหรับจัดการข้อมูลตัวอักษร)
+ * FIRESTORE FUNCTIONS (จัดการข้อมูลตัวอักษร)
  * ==========================================
  */
 
@@ -67,7 +70,7 @@ export const subscribeToSettings = (callback: (data: any) => void) => {
 };
 
 /** * ==========================================
- * STORAGE FUNCTIONS (สำหรับจัดการไฟล์รูปภาพ)
+ * STORAGE FUNCTIONS (จัดการไฟล์รูปภาพ)
  * ==========================================
  */
 
