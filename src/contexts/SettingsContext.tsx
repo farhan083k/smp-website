@@ -14,6 +14,7 @@ interface Settings {
   schoolName: string;
   programName: string;
   subtitle: string;
+  primaryColor: string; // 👈 เพิ่มตัวแปรสีหลัก
 }
 
 interface SettingsContextType {
@@ -32,6 +33,7 @@ const defaultSettings: Settings = {
   schoolName: 'โรงเรียนดารุสสาลาม ตันหยงมัส นราธิวาส',
   programName: 'ห้องเรียนโปรแกรมวิทยาศาสตร์และคณิตศาสตร์',
   subtitle: 'Science and Mathematics Program (SMP)',
+  primaryColor: '#3498DB', // 👈 ตั้งค่าสีเริ่มต้นเป็นสีฟ้าเดิม
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -42,7 +44,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const isFirebaseReady = isValidConfig();
 
-  // Load settings from localStorage first (for fast initial render)
   useEffect(() => {
     const saved = localStorage.getItem('smp-settings');
     if (saved) {
@@ -56,116 +57,62 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  // Subscribe to Firebase realtime updates
   useEffect(() => {
-    if (!isFirebaseReady) {
-      console.log('Firebase not configured, using localStorage only');
-      return;
-    }
-
-    console.log('Subscribing to Firebase realtime updates...');
+    if (!isFirebaseReady) return;
     
-    // Initial fetch from Firebase
     getSettings().then((firebaseSettings: any) => {
       if (firebaseSettings) {
-        console.log('Settings loaded from Firebase:', firebaseSettings);
         setSettings(prev => ({ ...prev, ...firebaseSettings }));
         localStorage.setItem('smp-settings', JSON.stringify({ ...settings, ...firebaseSettings }));
         setLastSync(new Date());
       }
     });
 
-    // Subscribe to realtime updates
-    const unsubscribe = subscribeToSettings((firebaseSettings) => {
+    const unsubscribe = subscribeToSettings((firebaseSettings: any) => {
       if (firebaseSettings) {
-        console.log('Realtime update from Firebase:', firebaseSettings);
         setSettings(prev => ({ ...prev, ...firebaseSettings }));
         localStorage.setItem('smp-settings', JSON.stringify({ ...settings, ...firebaseSettings }));
         setLastSync(new Date());
       }
     });
 
-    return () => {
-      unsubscribe();
-    };
+    return () => unsubscribe();
   }, [isFirebaseReady]);
 
   const updateSettings = async (newSettings: Partial<Settings>) => {
     const updatedSettings = { ...settings, ...newSettings };
-    
-    // Update local state immediately (optimistic update)
     setSettings(updatedSettings);
     localStorage.setItem('smp-settings', JSON.stringify(updatedSettings));
     
-    // Sync to Firebase if available
     if (isFirebaseReady) {
       try {
         const success = await saveSettings(newSettings);
-        if (success) {
-          console.log('Settings saved to Firebase');
-          setLastSync(new Date());
-        } else {
-          console.error('Failed to save settings to Firebase');
-        }
-      } catch (error) {
-        console.error('Error saving to Firebase:', error);
-      }
+        if (success) setLastSync(new Date());
+      } catch (error) { console.error('Error saving to Firebase:', error); }
     }
   };
 
   const uploadLogoFile = async (file: File): Promise<string | null> => {
-    if (!isFirebaseReady) {
-      // Fallback to local file reader
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
-      });
-    }
-    
+    if (!isFirebaseReady) return null;
     try {
       const url = await uploadLogo(file);
-      if (url) {
-        await updateSettings({ logo: url });
-      }
+      if (url) await updateSettings({ logo: url });
       return url;
-    } catch (error) {
-      console.error('Error uploading logo:', error);
-      return null;
-    }
+    } catch (error) { return null; }
   };
 
   const uploadBannerFile = async (file: File): Promise<string | null> => {
-    if (!isFirebaseReady) {
-      // Fallback to local file reader
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
-      });
-    }
-    
+    if (!isFirebaseReady) return null;
     try {
       const url = await uploadBanner(file);
-      if (url) {
-        await updateSettings({ banner: url });
-      }
+      if (url) await updateSettings({ banner: url });
       return url;
-    } catch (error) {
-      console.error('Error uploading banner:', error);
-      return null;
-    }
+    } catch (error) { return null; }
   };
 
   return (
     <SettingsContext.Provider value={{ 
-      settings, 
-      updateSettings, 
-      uploadLogoFile,
-      uploadBannerFile,
-      isLoading,
-      isFirebaseReady,
-      lastSync
+      settings, updateSettings, uploadLogoFile, uploadBannerFile, isLoading, isFirebaseReady, lastSync
     }}>
       {children}
     </SettingsContext.Provider>
@@ -174,8 +121,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
 export function useSettings() {
   const context = useContext(SettingsContext);
-  if (context === undefined) {
-    throw new Error('useSettings must be used within a SettingsProvider');
-  }
+  if (context === undefined) throw new Error('useSettings must be used within a SettingsProvider');
   return context;
 }
