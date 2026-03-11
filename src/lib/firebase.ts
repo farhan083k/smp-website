@@ -96,3 +96,13 @@ export const uploadLogo = async (file: File): Promise<string | null> => {
 export const uploadBanner = async (file: File): Promise<string | null> => {
   return uploadImage(file, `banners/${Date.now()}_${file.name}`);
 };
+
+// เฉพาะทาง: อัปโหลดรูปกิจกรรม
+export const uploadActivityImage = async (file: File): Promise<string | null> => {
+  return uploadImage(file, `activities/${Date.now()}_${file.name}`);
+};
+
+// เฉพาะทาง: อัปโหลดรูปบุคลากร
+export const uploadStaffImage = async (file: File): Promise<string | null> => {
+  return uploadImage(file, `staff/${Date.now()}_${file.name}`);
+};
