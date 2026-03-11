@@ -81,29 +81,38 @@ export default function Activities({ isLoggedIn }: ActivitiesProps) {
   };
 
   // 🔴 ฟังก์ชันจัดการการอัปโหลดรูปภาพกิจกรรม
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // ... ภายในฟังก์ชัน Activities ...
+const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const files = e.target.files;
+  if (!files || files.length === 0) return;
 
-    if (!file.type.startsWith('image/')) {
-      alert('กรุณาเลือกไฟล์รูปภาพเท่านั้น');
-      return;
-    }
+  // จำกัดไม่เกิน 50 รูป
+  if (files.length + (editForm.images?.length || 0) > 50) {
+    alert('อัปโหลดได้สูงสุด 50 รูปเท่านั้น');
+    return;
+  }
 
-    setIsUploading(true);
-    try {
-      const downloadURL = await uploadActivityImage(file);
-      if (downloadURL) {
-        setEditForm(prev => ({ ...prev, image: downloadURL }));
-      }
-    } catch (error) {
-      console.error('Upload error:', error);
-      alert('อัปโหลดรูปภาพไม่สำเร็จ');
-    } finally {
-      setIsUploading(false);
-    }
-  };
+  setIsUploading(true);
+  try {
+    const urls = await uploadMultipleImages(files, 'activities');
+    setEditForm(prev => ({
+      ...prev,
+      images: [...(prev.images || []), ...urls] // เพิ่มรูปใหม่เข้าไปในอาเรย์เดิม
+    }));
+  } catch (error) {
+    alert('อัปโหลดผิดพลาด');
+  } finally {
+    setIsUploading(false);
+  }
+};
 
+// ส่วนการแสดงผลในหน้าเว็บ (JSX)
+// ตอนโชว์รูปในหน้าหลัก ให้เปลี่ยนจาก <img src={activity.image} /> เป็นการวน Loop หรือโชว์รูปแรก
+<div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4">
+  {activity.images?.map((img: string, idx: number) => (
+    <img key={idx} src={img} className="h-24 w-full object-cover rounded-lg" />
+  ))}
+</div>
   const handleSave = async () => {
     if (!editForm.title || !editForm.description) return;
 

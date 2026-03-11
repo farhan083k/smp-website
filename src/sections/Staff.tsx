@@ -305,3 +305,30 @@ export default function Staff({ isLoggedIn }: StaffProps) {
     </section>
   );
 }
+
+// 1. เพิ่มสถานะใน editForm
+// { ... , posX: 50, posY: 50 }
+
+// 2. ส่วนการแสดงผลรูปในหน้าเว็บ
+<img 
+  src={member.image} 
+  style={{ objectPosition: `${member.posX || 50}% ${member.posY || 50}%` }}
+  className="w-full h-full object-cover"
+/>
+
+// 3. เพิ่มคอนโทรลใน Dialog แก้ไข
+<div className="space-y-2">
+  <label className="text-xs font-bold">ปรับตำแหน่งรูป (ซ้าย-ขวา / บน-ล่าง)</label>
+  <div className="grid grid-cols-2 gap-4">
+    <input 
+      type="range" min="0" max="100" 
+      value={editForm.posX || 50} 
+      onChange={(e) => setEditForm({...editForm, posX: e.target.value})}
+    />
+    <input 
+      type="range" min="0" max="100" 
+      value={editForm.posY || 50} 
+      onChange={(e) => setEditForm({...editForm, posY: e.target.value})}
+    />
+  </div>
+</div>

@@ -106,3 +106,15 @@ export const uploadActivityImage = async (file: File): Promise<string | null> =>
 export const uploadStaffImage = async (file: File): Promise<string | null> => {
   return uploadImage(file, `staff/${Date.now()}_${file.name}`);
 };
+
+// ฟังก์ชันอัปโหลดหลายรูปพร้อมกัน
+export const uploadMultipleImages = async (files: FileList | File[], folder: string): Promise<string[]> => {
+  const uploadPromises = Array.from(files).map(async (file) => {
+    const fileName = `${Date.now()}_${file.name}`;
+    const storageRef = ref(storage, `${folder}/${fileName}`);
+    await uploadBytes(storageRef, file);
+    return getDownloadURL(storageRef);
+  });
+
+  return Promise.all(uploadPromises); // รอให้อัปโหลดเสร็จทุกรูปแล้วส่งอาเรย์ของ URL กลับมา
+};

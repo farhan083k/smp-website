@@ -233,3 +233,14 @@ const categoryLabels: Record<string, { text: string; color: string }> = {
   contact: { text: 'ติดต่อ', color: 'bg-pink-100 text-pink-700 border-pink-300' },
   other: { text: 'อื่นๆ', color: 'bg-gray-100 text-gray-700 border-gray-300' },
 };
+
+// ภายในส่วนแสดงผล (JSX)
+{item.link && (
+  <a 
+    href={item.link} 
+    target="_blank" 
+    className="inline-flex items-center text-[#3498DB] font-bold hover:underline mt-2"
+  >
+    อ่านรายละเอียดเพิ่มเติม <ExternalLink className="ml-1 h-4 w-4" />
+  </a>
+)}
