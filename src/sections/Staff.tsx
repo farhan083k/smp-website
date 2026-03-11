@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy, getDocs } from 'firebase/firestore';
 import { db, uploadStaffImage } from '../lib/firebase'; // 👈 นำเข้าฟังก์ชันอัปโหลดรูปบุคลากร
-import { Users, Mail, GraduationCap, Plus, Edit2, Trash2, Save, Upload, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Users, Mail, GraduationCap, Plus, Edit2, Trash2, Save, Upload, Loader2, } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
