@@ -12,7 +12,7 @@ const firebaseConfig = {
   appId: "1:329755172871:web:c01bf5f0b9f3d01d6ccaa2"
 };
 
-// ✅ แก้ Error TS2349: ทำให้เรียกใช้งานเป็นฟังก์ชันได้
+// ✅ แก้ Error TS2349
 export const isValidConfig = () => Boolean(firebaseConfig.apiKey);
 
 const app = initializeApp(firebaseConfig);
@@ -20,28 +20,39 @@ export const db = getFirestore(app);
 export const auth = getAuth(app);
 export const storage = getStorage(app);
 
-/** * ฟังก์ชันอัปโหลดหลายรูปพร้อมกัน (รองรับสูงสุด 50 รูป)
+/** * ฟังก์ชันจัดการ Settings (แก้ Error TS2305 ใน SettingsContext)
  */
-export const uploadMultipleImages = async (files: FileList | File[], folder: string): Promise<string[]> => {
-  const uploadPromises = Array.from(files).map(async (file) => {
-    const fileName = `${Date.now()}_${file.name}`;
-    const storageRef = ref(storage, `${folder}/${fileName}`);
-    await uploadBytes(storageRef, file);
-    return getDownloadURL(storageRef);
+export const getSettings = async () => {
+  const docSnap = await getDoc(doc(db, 'settings', 'site'));
+  return docSnap.exists() ? docSnap.data() : null;
+};
+
+export const saveSettings = async (settings: any) => {
+  await setDoc(doc(db, 'settings', 'site'), settings, { merge: true });
+};
+
+export const subscribeToSettings = (callback: (data: any) => void) => {
+  return onSnapshot(doc(db, 'settings', 'site'), (doc) => {
+    if (doc.exists()) callback(doc.data());
   });
-  return Promise.all(uploadPromises);
 };
 
-export const uploadStaffImage = async (file: File) => {
-  const storageRef = ref(storage, `staff/${Date.now()}_${file.name}`);
+/** * ฟังก์ชันอัปโหลดรูปภาพ (แก้ Error TS2305 ใน AdminSettings)
+ */
+export const uploadImage = async (file: File, path: string) => {
+  const storageRef = ref(storage, path);
   await uploadBytes(storageRef, file);
   return getDownloadURL(storageRef);
 };
 
-export const uploadActivityImage = async (file: File) => {
-  const storageRef = ref(storage, `activities/${Date.now()}_${file.name}`);
-  await uploadBytes(storageRef, file);
-  return getDownloadURL(storageRef);
+export const uploadLogo = (file: File) => uploadImage(file, `logos/${Date.now()}_${file.name}`);
+export const uploadBanner = (file: File) => uploadImage(file, `banners/${Date.now()}_${file.name}`);
+export const uploadStaffImage = (file: File) => uploadImage(file, `staff/${Date.now()}_${file.name}`);
+export const uploadActivityImage = (file: File) => uploadImage(file, `activities/${Date.now()}_${file.name}`);
+
+export const uploadMultipleImages = async (files: FileList | File[], folder: string) => {
+  const promises = Array.from(files).map(file => uploadImage(file, `${folder}/${Date.now()}_${file.name}`));
+  return Promise.all(promises);
 };
 
 export { app };

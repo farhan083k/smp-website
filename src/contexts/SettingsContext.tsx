@@ -66,7 +66,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     console.log('Subscribing to Firebase realtime updates...');
     
     // Initial fetch from Firebase
-    getSettings().then((firebaseSettings) => {
+    getSettings().then((firebaseSettings: any) => {
       if (firebaseSettings) {
         console.log('Settings loaded from Firebase:', firebaseSettings);
         setSettings(prev => ({ ...prev, ...firebaseSettings }));

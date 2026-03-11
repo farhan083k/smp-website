@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
 import { db, uploadStaffImage } from '../lib/firebase';
-import { Users, Mail, GraduationCap, Plus, Edit2, Trash2, Save, Upload, Loader2 } from 'lucide-react';
+import { Mail, Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
