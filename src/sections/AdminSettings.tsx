@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { Settings, Image, Type, Save, X, Upload, Eye, EyeOff, Cloud, CloudOff, RefreshCw } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Settings, Image, Type, Save, X, Upload, Eye, EyeOff, Cloud, CloudOff, RefreshCw, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useSettings } from '@/contexts/SettingsContext';
+import { uploadLogo, uploadBanner } from '@/lib/firebase'; // 👈 นำเข้าฟังก์ชันจากเครื่องจักรที่เราสร้างไว้
 
 interface AdminSettingsProps {
   isOpen: boolean;
@@ -20,78 +21,73 @@ export default function AdminSettings({ isOpen, onClose }: AdminSettingsProps) {
   const { 
     settings, 
     updateSettings, 
-    uploadLogoFile, 
-    uploadBannerFile,
     isFirebaseReady,
     lastSync 
   } = useSettings();
   
+  // สร้าง State สำหรับเก็บข้อมูลฟอร์ม
   const [formData, setFormData] = useState(settings);
   const [previewMode, setPreviewMode] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string>('');
+  
   const logoInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSave = async () => {
-    await updateSettings({
-      programName: formData.programName,
-      schoolName: formData.schoolName,
-      subtitle: formData.subtitle,
-      logo: formData.logo,
-      banner: formData.banner,
-    });
-    onClose();
-  };
+  // อัปเดต formData เมื่อข้อมูล settings จาก Cloud เปลี่ยนแปลง
+  useEffect(() => {
+    setFormData(settings);
+  }, [settings]);
 
-  const handleImageUpload = async (type: 'logo' | 'banner', file: File) => {
-    setIsUploading(true);
-    setUploadProgress(`กำลังอัพโหลด${type === 'logo' ? 'โลโก้' : 'แบนเนอร์'}...`);
-    
+  const handleSave = async () => {
     try {
-      let result: string | null = null;
-      
-      if (type === 'logo') {
-        result = await uploadLogoFile(file);
-      } else {
-        result = await uploadBannerFile(file);
-      }
-      
-      if (result) {
-        if (type === 'logo') {
-          setFormData({ ...formData, logo: result });
-        } else {
-          setFormData({ ...formData, banner: result });
-        }
-        setUploadProgress('อัพโหลดสำเร็จ!');
-        setTimeout(() => setUploadProgress(''), 2000);
-      } else {
-        setUploadProgress('อัพโหลดไม่สำเร็จ กรุณาลองใหม่');
-      }
+      await updateSettings(formData);
+      alert('บันทึกการตั้งค่าเรียบร้อยแล้ว');
+      onClose();
     } catch (error) {
-      console.error('Upload error:', error);
-      setUploadProgress('เกิดข้อผิดพลาดในการอัพโหลด');
-    } finally {
-      setIsUploading(false);
+      alert('เกิดข้อผิดพลาดในการบันทึก');
     }
   };
 
   const handleFileChange = async (type: 'logo' | 'banner', e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        setUploadProgress('กรุณาเลือกไฟล์รูปภาพเท่านั้น');
-        return;
-      }
+    if (!file) return;
+
+    // ตรวจสอบชนิดไฟล์
+    if (!file.type.startsWith('image/')) {
+      alert('กรุณาเลือกไฟล์รูปภาพเท่านั้น');
+      return;
+    }
+    
+    // ตรวจสอบขนาดไฟล์ (ไม่เกิน 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('ไฟล์ใหญ่เกินไป (สูงสุด 5MB)');
+      return;
+    }
+    
+    setIsUploading(true);
+    setUploadProgress(`กำลังอัปโหลด${type === 'logo' ? 'โลโก้' : 'แบนเนอร์'}...`);
+
+    try {
+      let downloadURL: string | null = null;
       
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setUploadProgress('ไฟล์ใหญ่เกินไป (สูงสุด 5MB)');
-        return;
+      if (type === 'logo') {
+        downloadURL = await uploadLogo(file);
+      } else {
+        downloadURL = await uploadBanner(file);
       }
-      
-      await handleImageUpload(type, file);
+
+      if (downloadURL) {
+        // อัปเดต URL ในฟอร์มเพื่อให้เห็นตัวอย่างทันที
+        setFormData(prev => ({ ...prev, [type]: downloadURL }));
+        setUploadProgress('อัปโหลดสำเร็จ!');
+        setTimeout(() => setUploadProgress(''), 2000);
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      setUploadProgress('เกิดข้อผิดพลาดในการอัปโหลด');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -105,7 +101,7 @@ export default function AdminSettings({ isOpen, onClose }: AdminSettingsProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl admin-panel max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl admin-panel max-h-[90vh] overflow-y-auto border-none shadow-2xl">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-[#2C3E50] flex items-center justify-between">
             <div className="flex items-center">
@@ -114,14 +110,14 @@ export default function AdminSettings({ isOpen, onClose }: AdminSettingsProps) {
             </div>
             <div className="flex items-center space-x-2">
               {isFirebaseReady ? (
-                <span className="flex items-center text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                <span className="flex items-center text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full border border-green-200">
                   <Cloud className="h-3 w-3 mr-1" />
-                  Cloud Ready
+                  Cloud Connected
                 </span>
               ) : (
-                <span className="flex items-center text-xs text-amber-600 bg-amber-100 px-2 py-1 rounded-full">
+                <span className="flex items-center text-xs text-amber-600 bg-amber-100 px-2 py-1 rounded-full border border-amber-200">
                   <CloudOff className="h-3 w-3 mr-1" />
-                  Local Only
+                  Local Mode
                 </span>
               )}
             </div>
@@ -129,239 +125,126 @@ export default function AdminSettings({ isOpen, onClose }: AdminSettingsProps) {
         </DialogHeader>
 
         <div className="space-y-6 pt-4">
-          {/* Cloud Status */}
-          <div className="p-3 bg-[#98D8C8]/20 rounded-lg border border-[#3498DB]/30">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-[#2C3E50]">
-                  สถานะการเชื่อมต่อ
-                </p>
-                <p className="text-xs text-[#2C3E50]/60">
-                  {isFirebaseReady 
-                    ? 'เชื่อมต่อ Firebase แล้ว - ข้อมูลซิงค์แบบ Realtime' 
-                    : 'ใช้งานแบบ Offline - ข้อมูลจะถูกเก็บในเบราว์เซอร์'}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-[#2C3E50]/60">ซิงค์ล่าสุด:</p>
-                <p className="text-xs font-medium text-[#2C3E50]">{formatLastSync()}</p>
-              </div>
+          {/* Sync Status Info */}
+          <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100 flex justify-between items-center text-sm">
+            <div className="flex items-center text-[#2C3E50]/70">
+              <RefreshCw className={`h-3 w-3 mr-2 ${isUploading ? 'animate-spin' : ''}`} />
+              ซิงค์ล่าสุด: {formatLastSync()}
             </div>
           </div>
 
-          {/* Preview Toggle */}
-          <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-[#3498DB]/30">
-            <span className="text-sm font-medium text-[#2C3E50]">โหมดแสดงตัวอย่าง</span>
-            <button
-              onClick={() => setPreviewMode(!previewMode)}
-              className={`p-2 rounded-lg transition-colors ${
-                previewMode ? 'bg-[#3498DB] text-white' : 'bg-white border border-[#3498DB] text-[#3498DB]'
-              }`}
-            >
-              {previewMode ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-            </button>
-          </div>
-
-          {/* Logo Section */}
-          <div className="space-y-3">
-            <h3 className="text-lg font-semibold text-[#2C3E50] flex items-center">
+          {/* 🔘 Logo Section */}
+          <div className="space-y-4 p-4 bg-white rounded-xl border border-[#3498DB]/10 shadow-sm">
+            <h3 className="text-lg font-bold text-[#2C3E50] flex items-center">
               <Image className="h-5 w-5 mr-2 text-[#3498DB]" />
-              โลโก้
+              โลโก้โรงเรียน
             </h3>
             
-            {/* Current Logo Preview */}
-            {(formData.logo || previewMode) && (
-              <div className="p-4 bg-white rounded-lg border border-[#3498DB]/30">
-                <p className="text-xs text-[#2C3E50]/60 mb-2">ตัวอย่างโลโก้:</p>
-                <div className="flex items-center space-x-3">
+            <div className="flex flex-col sm:flex-row items-center gap-6">
+              {/* Preview Circle */}
+              <div className="relative group">
+                <div className="h-24 w-24 rounded-full border-4 border-[#98D8C8]/30 overflow-hidden bg-gray-50 flex items-center justify-center shadow-inner">
                   {formData.logo ? (
-                    <img
-                      src={formData.logo}
-                      alt="Logo"
-                      className="h-16 w-16 object-contain rounded-lg border border-[#3498DB]/20"
-                    />
+                    <img src={formData.logo} alt="Logo Preview" className="w-full h-full object-cover scale-[1.2]" />
                   ) : (
-                    <div className="h-16 w-16 bg-[#98D8C8]/30 rounded-lg flex items-center justify-center border border-[#3498DB]/20">
-                      <Image className="h-8 w-8 text-[#3498DB]/50" />
-                    </div>
+                    <Image className="h-8 w-8 text-gray-300" />
                   )}
                 </div>
+                {isUploading && <div className="absolute inset-0 bg-white/60 flex items-center justify-center rounded-full"><Loader2 className="animate-spin text-[#3498DB]" /></div>}
               </div>
-            )}
 
-            {/* Logo URL Input */}
-            <div>
-              <label className="block text-sm font-medium text-[#2C3E50] mb-2">
-                URL รูปโลโก้
-              </label>
-              <Input
-                value={formData.logo}
-                onChange={(e) => setFormData({ ...formData, logo: e.target.value })}
-                placeholder="https://example.com/logo.png"
-                className="border-[#3498DB]"
-              />
-            </div>
-
-            {/* Logo File Upload */}
-            <div>
-              <label className="block text-sm font-medium text-[#2C3E50] mb-2">
-                หรืออัพโหลดไฟล์ {isFirebaseReady && '(จะอัพโหลดไปยัง Cloud อัตโนมัติ)'}
-              </label>
-              <input
-                type="file"
-                ref={logoInputRef}
-                onChange={(e) => handleFileChange('logo', e)}
-                accept="image/*"
-                className="hidden"
-                disabled={isUploading}
-              />
-              <Button
-                onClick={() => logoInputRef.current?.click()}
-                variant="outline"
-                className="w-full border-[#3498DB] border-dashed"
-                disabled={isUploading}
-              >
-                {isUploading ? (
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Upload className="h-4 w-4 mr-2" />
-                )}
-                {isUploading ? uploadProgress : 'เลือกไฟล์รูปภาพ'}
-              </Button>
-              <p className="text-xs text-[#2C3E50]/50 mt-1">
-                รองรับไฟล์ JPG, PNG, GIF ขนาดไม่เกิน 5MB
-              </p>
+              {/* Upload Controls */}
+              <div className="flex-1 w-full space-y-3">
+                <Input
+                  value={formData.logo || ''}
+                  onChange={(e) => setFormData({ ...formData, logo: e.target.value })}
+                  placeholder="URL รูปภาพโลโก้"
+                  className="border-[#3498DB]/20 focus:border-[#3498DB]"
+                />
+                <div className="flex gap-2">
+                  <input type="file" ref={logoInputRef} onChange={(e) => handleFileChange('logo', e)} accept="image/*" className="hidden" />
+                  <Button 
+                    onClick={() => logoInputRef.current?.click()} 
+                    variant="outline" 
+                    className="flex-1 border-[#3498DB] border-dashed hover:bg-blue-50"
+                    disabled={isUploading}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    อัปโหลดไฟล์ใหม่
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Banner Section */}
-          <div className="space-y-3">
-            <h3 className="text-lg font-semibold text-[#2C3E50] flex items-center">
+          {/* 🖼️ Banner Section */}
+          <div className="space-y-4 p-4 bg-white rounded-xl border border-[#3498DB]/10 shadow-sm">
+            <h3 className="text-lg font-bold text-[#2C3E50] flex items-center">
               <Image className="h-5 w-5 mr-2 text-[#3498DB]" />
               แบนเนอร์หน้าแรก
             </h3>
+
+            {/* Banner Preview Area */}
+            <div className="relative h-32 w-full rounded-xl border-2 border-[#3498DB]/10 overflow-hidden bg-gray-100 group">
+              {formData.banner ? (
+                <img src={formData.banner} alt="Banner Preview" className="w-full h-full object-cover" />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                  <Image className="h-8 w-8 mb-1" />
+                  <span className="text-xs">ยังไม่มีรูปแบนเนอร์</span>
+                </div>
+              )}
+              {isUploading && <div className="absolute inset-0 bg-white/60 flex items-center justify-center"><Loader2 className="animate-spin text-[#3498DB]" /></div>}
+            </div>
+
+            <Input
+              value={formData.banner || ''}
+              onChange={(e) => setFormData({ ...formData, banner: e.target.value })}
+              placeholder="URL รูปภาพแบนเนอร์"
+              className="border-[#3498DB]/20"
+            />
             
-            {/* Current Banner Preview */}
-            {(formData.banner || previewMode) && (
-              <div className="p-4 bg-white rounded-lg border border-[#3498DB]/30">
-                <p className="text-xs text-[#2C3E50]/60 mb-2">ตัวอย่างแบนเนอร์:</p>
-                {formData.banner ? (
-                  <img
-                    src={formData.banner}
-                    alt="Banner"
-                    className="w-full h-32 object-cover rounded-lg border border-[#3498DB]/20"
-                  />
-                ) : (
-                  <div className="w-full h-32 bg-[#98D8C8]/30 rounded-lg flex items-center justify-center border border-[#3498DB]/20">
-                    <Image className="h-12 w-12 text-[#3498DB]/50" />
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Banner URL Input */}
-            <div>
-              <label className="block text-sm font-medium text-[#2C3E50] mb-2">
-                URL รูปแบนเนอร์
-              </label>
-              <Input
-                value={formData.banner}
-                onChange={(e) => setFormData({ ...formData, banner: e.target.value })}
-                placeholder="https://example.com/banner.jpg"
-                className="border-[#3498DB]"
-              />
-            </div>
-
-            {/* Banner File Upload */}
-            <div>
-              <label className="block text-sm font-medium text-[#2C3E50] mb-2">
-                หรืออัพโหลดไฟล์ {isFirebaseReady && '(จะอัพโหลดไปยัง Cloud อัตโนมัติ)'}
-              </label>
-              <input
-                type="file"
-                ref={bannerInputRef}
-                onChange={(e) => handleFileChange('banner', e)}
-                accept="image/*"
-                className="hidden"
-                disabled={isUploading}
-              />
-              <Button
-                onClick={() => bannerInputRef.current?.click()}
-                variant="outline"
-                className="w-full border-[#3498DB] border-dashed"
-                disabled={isUploading}
-              >
-                {isUploading ? (
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Upload className="h-4 w-4 mr-2" />
-                )}
-                {isUploading ? uploadProgress : 'เลือกไฟล์รูปภาพ'}
-              </Button>
-              <p className="text-xs text-[#2C3E50]/50 mt-1">
-                แนะนำขนาด 1920x600 พิกเซล สำหรับแบนเนอร์หน้าแรก
-              </p>
-            </div>
+            <input type="file" ref={bannerInputRef} onChange={(e) => handleFileChange('banner', e)} accept="image/*" className="hidden" />
+            <Button 
+              onClick={() => bannerInputRef.current?.click()} 
+              variant="outline" 
+              className="w-full border-[#3498DB] border-dashed hover:bg-blue-50"
+              disabled={isUploading}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              {isUploading ? uploadProgress : 'เลือกไฟล์แบนเนอร์ใหม่ (1920x600)'}
+            </Button>
           </div>
 
-          {/* Text Settings */}
-          <div className="space-y-3">
-            <h3 className="text-lg font-semibold text-[#2C3E50] flex items-center">
+          {/* 📝 Text Settings */}
+          <div className="space-y-4 p-4 bg-white rounded-xl border border-[#3498DB]/10 shadow-sm">
+            <h3 className="text-lg font-bold text-[#2C3E50] flex items-center">
               <Type className="h-5 w-5 mr-2 text-[#3498DB]" />
-              ข้อความ
+              ข้อมูลข้อความ
             </h3>
-            
-            <div>
-              <label className="block text-sm font-medium text-[#2C3E50] mb-2">
-                ชื่อโปรแกรม
-              </label>
-              <Input
-                value={formData.programName}
-                onChange={(e) => setFormData({ ...formData, programName: e.target.value })}
-                placeholder="ชื่อโปรแกรม"
-                className="border-[#3498DB]"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-[#2C3E50] mb-2">
-                ชื่อโรงเรียน
-              </label>
-              <Input
-                value={formData.schoolName}
-                onChange={(e) => setFormData({ ...formData, schoolName: e.target.value })}
-                placeholder="ชื่อโรงเรียน"
-                className="border-[#3498DB]"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-[#2C3E50] mb-2">
-                คำอธิบาย (Subtitle)
-              </label>
-              <Textarea
-                value={formData.subtitle}
-                onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })}
-                placeholder="คำอธิบายโปรแกรม"
-                rows={2}
-                className="border-[#3498DB]"
-              />
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-[#2C3E50]/60 uppercase ml-1">ชื่อโปรแกรม</label>
+                <Input value={formData.programName} onChange={(e) => setFormData({ ...formData, programName: e.target.value })} className="border-[#3498DB]/20" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-[#2C3E50]/60 uppercase ml-1">ชื่อโรงเรียน</label>
+                <Input value={formData.schoolName} onChange={(e) => setFormData({ ...formData, schoolName: e.target.value })} className="border-[#3498DB]/20" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-[#2C3E50]/60 uppercase ml-1">คำอธิบายเพิ่มเติม</label>
+                <Textarea value={formData.subtitle} onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })} rows={3} className="border-[#3498DB]/20" />
+              </div>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex space-x-3 pt-4 border-t border-[#3498DB]/20">
-            <Button onClick={handleSave} className="flex-1 btn-primary" disabled={isUploading}>
-              <Save className="h-4 w-4 mr-2" />
-              บันทึกการตั้งค่า
+          <div className="flex space-x-3 pt-4 sticky bottom-0 bg-white/80 backdrop-blur-sm pb-2">
+            <Button onClick={handleSave} className="flex-1 btn-primary h-12 text-lg shadow-lg shadow-blue-200" disabled={isUploading}>
+              <Save className="h-5 w-5 mr-2" />
+              บันทึกข้อมูลทั้งหมด
             </Button>
-            <Button
-              onClick={onClose}
-              variant="outline"
-              className="flex-1 border-[#3498DB]"
-              disabled={isUploading}
-            >
-              <X className="h-4 w-4 mr-2" />
+            <Button onClick={onClose} variant="ghost" className="px-6 text-gray-500 hover:text-red-500" disabled={isUploading}>
               ยกเลิก
             </Button>
           </div>
