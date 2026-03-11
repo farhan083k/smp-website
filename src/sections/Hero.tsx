@@ -5,20 +5,21 @@ export default function Hero() {
   const { settings } = useSettings();
 
   return (
-    <section className="relative overflow-hidden py-16 lg:py-24">
-      {/* Background Banner */}
+    <section className="relative overflow-hidden py-20 lg:py-32 min-h-[60vh] flex items-center">
+      {/* 🖼️ Background Banner - ปรับให้เต็มพื้นที่และเห็นรูปชัดขึ้น */}
       {settings.banner && (
         <div className="absolute inset-0 z-0">
           <img
             src={settings.banner}
             alt="Banner"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover object-center" // 👈 เต็มพื้นที่และจัดกลางรูปเสมอ
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#F0F9F6]/90 via-[#F0F9F6]/70 to-[#F0F9F6]/90" />
+          {/* ปรับ Gradient ให้จางลงเพื่อให้เห็นแบนเนอร์สวยๆ ของคุณ */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#F0F9F6]/80 via-[#F0F9F6]/40 to-[#F0F9F6]/80" />
         </div>
       )}
 
-      {/* Background Islamic Pattern (if no banner) */}
+      {/* Background Islamic Pattern (โชว์เมื่อไม่มีแบนเนอร์) */}
       {!settings.banner && (
         <>
           <div className="absolute inset-0 islamic-pattern" />
@@ -26,91 +27,61 @@ export default function Hero() {
         </>
       )}
       
-      {/* Decorative Elements */}
-      <div className="absolute top-10 left-10 w-32 h-32 border-4 border-[#3498DB]/20 rounded-full" />
-      <div className="absolute bottom-10 right-10 w-48 h-48 border-4 border-[#98D8C8]/30 rounded-full" />
-      <div className="absolute top-1/2 right-20 w-24 h-24 border-4 border-[#F7DC6F]/25 rounded-full transform -translate-y-1/2" />
+      {/* Decorative Elements - วงกลมตกแต่ง */}
+      <div className="absolute top-10 left-10 w-32 h-32 border-4 border-[#3498DB]/20 rounded-full animate-pulse" />
+      <div className="absolute bottom-10 right-10 w-48 h-48 border-4 border-[#98D8C8]/30 rounded-full animate-bounce-slow" />
       
-      {/* Islamic Geometric Shapes */}
-      <div className="absolute top-20 right-10 opacity-10">
-        <svg width="120" height="120" viewBox="0 0 120 120">
-          <polygon
-            points="60,10 110,35 110,85 60,110 10,85 10,35"
-            fill="none"
-            stroke="#3498DB"
-            strokeWidth="2"
-          />
-          <polygon
-            points="60,25 95,42 95,78 60,95 25,78 25,42"
-            fill="none"
-            stroke="#98D8C8"
-            strokeWidth="2"
-          />
-        </svg>
-      </div>
-      
-      <div className="absolute bottom-20 left-10 opacity-10">
-        <svg width="100" height="100" viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r="45" fill="none" stroke="#F7DC6F" strokeWidth="2" />
-          <circle cx="50" cy="50" r="30" fill="none" stroke="#3498DB" strokeWidth="2" />
-          <circle cx="50" cy="50" r="15" fill="none" stroke="#98D8C8" strokeWidth="2" />
-        </svg>
-      </div>
-
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         <div className="text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center px-4 py-2 rounded-full bg-[#98D8C8]/30 border-2 border-[#3498DB] mb-6">
+          {/* Badge โรงเรียน */}
+          <div className="inline-flex items-center px-4 py-2 rounded-full bg-white/60 backdrop-blur-sm border-2 border-[#3498DB] mb-8 animate-fade-in">
             <Star className="h-4 w-4 text-[#3498DB] mr-2" />
-            <span className="text-sm font-medium text-[#2C3E50]">
-              {settings.schoolName}
+            <span className="text-sm font-bold text-[#2C3E50]">
+              {settings.schoolName || 'โรงเรียนดารุสสาลาม'}
             </span>
           </div>
 
-          {/* Main Title */}
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[#2C3E50] mb-6 leading-tight">
+          {/* ชื่อโปรแกรมหลัก */}
+          <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold text-[#2C3E50] mb-8 leading-tight drop-shadow-sm">
             ห้องเรียนโปรแกรม
             <br />
-            <span className="text-[#3498DB]">วิทยาศาสตร์และคณิตศาสตร์</span>
+            <span className="text-[#3498DB] drop-shadow-none">วิทยาศาสตร์และคณิตศาสตร์</span>
           </h1>
 
-          {/* Subtitle */}
-          <p className="text-lg sm:text-xl text-[#2C3E50]/80 max-w-3xl mx-auto mb-10">
-            {settings.subtitle}
-            <br />
-            ห้องเรียนพิเศษสำหรับนักเรียนที่มีความสามารถพิเศษทางวิทยาศาสตร์และคณิตศาสตร์
-            พร้อมพัฒนาศักยภาพให้ก้าวสู่ความเป็นเลิศ
+          {/* คำโปรยข้างล่าง */}
+          <p className="text-lg sm:text-2xl text-[#2C3E50]/90 max-w-3xl mx-auto mb-12 font-medium leading-relaxed">
+            {settings.subtitle || 'ห้องเรียนพิเศษสำหรับนักเรียนที่มีความสามารถพิเศษ พร้อมพัฒนาศักยภาพให้ก้าวสู่ความเป็นเลิศ'}
           </p>
 
-          {/* Features */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            <div className="mint-card p-6 text-center">
-              <div className="bg-[#98D8C8]/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-[#3498DB]">
-                <FlaskConical className="h-8 w-8 text-[#3498DB]" />
+          {/* Feature Cards - 3 หัวใจหลัก */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            <div className="mint-card p-8 text-center bg-white/40 backdrop-blur-md hover:bg-white/60 transition-all group">
+              <div className="bg-[#98D8C8]/40 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-[#3498DB] group-hover:scale-110 transition-transform">
+                <FlaskConical className="h-10 w-10 text-[#3498DB]" />
               </div>
-              <h3 className="font-bold text-[#2C3E50] mb-2">วิทยาศาสตร์</h3>
-              <p className="text-sm text-[#2C3E50]/70">
-                เรียนรู้ผ่านการทดลองและการค้นคว้าจริง
+              <h3 className="font-bold text-xl text-[#2C3E50] mb-3">วิทยาศาสตร์</h3>
+              <p className="text-sm text-[#2C3E50]/70 font-medium">
+                เรียนรู้ผ่านการทดลองและการค้นคว้าจริงในห้องปฏิบัติการที่ทันสมัย
               </p>
             </div>
 
-            <div className="mint-card p-6 text-center">
-              <div className="bg-[#F7DC6F]/40 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-[#3498DB]">
-                <Calculator className="h-8 w-8 text-[#3498DB]" />
+            <div className="mint-card p-8 text-center bg-white/40 backdrop-blur-md hover:bg-white/60 transition-all group">
+              <div className="bg-[#F7DC6F]/50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-[#3498DB] group-hover:scale-110 transition-transform">
+                <Calculator className="h-10 w-10 text-[#3498DB]" />
               </div>
-              <h3 className="font-bold text-[#2C3E50] mb-2">คณิตศาสตร์</h3>
-              <p className="text-sm text-[#2C3E50]/70">
-                พัฒนาการคิดเชิงตรรกะและการแก้ปัญหา
+              <h3 className="font-bold text-xl text-[#2C3E50] mb-3">คณิตศาสตร์</h3>
+              <p className="text-sm text-[#2C3E50]/70 font-medium">
+                ฝึกฝนการคิดเชิงตรรกะและการแก้ปัญหาที่ซับซ้อนอย่างเป็นระบบ
               </p>
             </div>
 
-            <div className="mint-card p-6 text-center">
-              <div className="bg-[#98D8C8]/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-[#3498DB]">
-                <BookOpen className="h-8 w-8 text-[#3498DB]" />
+            <div className="mint-card p-8 text-center bg-white/40 backdrop-blur-md hover:bg-white/60 transition-all group">
+              <div className="bg-[#98D8C8]/40 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-[#3498DB] group-hover:scale-110 transition-transform">
+                <BookOpen className="h-10 w-10 text-[#3498DB]" />
               </div>
-              <h3 className="font-bold text-[#2C3E50] mb-2">ภาษาอังกฤษ</h3>
-              <p className="text-sm text-[#2C3E50]/70">
-                สื่อสารภาษาอังกฤษได้อย่างมืออาชีพ
+              <h3 className="font-bold text-xl text-[#2C3E50] mb-3">ภาษาอังกฤษ</h3>
+              <p className="text-sm text-[#2C3E50]/70 font-medium">
+                เสริมสร้างทักษะการสื่อสารภาษาอังกฤษเพื่อก้าวสู่ระดับสากล
               </p>
             </div>
           </div>
