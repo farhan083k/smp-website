@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
+import { db } from '../lib/firebase'; // 👈 เชื่อมสายไฟเข้า Firebase
 import { Megaphone, Calendar, Plus, Edit2, Trash2, X, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,33 +17,27 @@ interface AnnouncementsProps {
   isLoggedIn: boolean;
 }
 
-const initialAnnouncements: Announcement[] = [
-  {
-    id: 1,
-    title: 'รับสมัครนักเรียนเข้าห้องเรียน SMP ปีการศึกษา 2568',
-    content: 'โรงเรียนดารุสสาลาม เปิดรับสมัครนักเรียนเข้าห้องเรียนโปรแกรมวิทยาศาสตร์และคณิตศาสตร์ (SMP) ประจำปีการศึกษา 2568 สำหรับนักเรียนชั้น ม.1 และ ม.4 ผู้ที่มีความสามารถพิเศษทางวิทยาศาสตร์และคณิตศาสตร์ สามารถสมัครได้ตั้งแต่วันนี้ - 30 มีนาคม 2568',
-    date: '2026-03-01',
-  },
-  {
-    id: 2,
-    title: 'ประกาศผลการแข่งขันคณิตศาสตร์โอลิมปิกระดับชาติ',
-    content: 'ขอแสดงความยินดีกับนักเรียนห้องเรียน SMP ที่ได้รับรางวัลจากการแข่งขันคณิตศาสตร์โอลิมปิกระดับชาติ ประจำปี 2568 ได้แก่ ด.ช.อhmad สานิ รางวัลเหรียญทอง ด.ญ.ฟาติมะ หะยีมามะ รางวัลเหรียญเงิน และ ด.ช.มูฮำหมัด อามีน รางวัลเหรียญทองแดง',
-    date: '2026-02-15',
-  },
-  {
-    id: 3,
-    title: 'กำหนดการสอบเข้าห้องเรียน SMP',
-    content: 'ขอแจ้งกำหนดการสอบคัดเลือกเข้าห้องเรียน SMP ประจำปีการศึกษา 2568 วันที่ 5 เมษายน 2568 ณ ห้องสอบโรงเรียนดารุสสาลาม เริ่มเวลา 09:00 น. ผู้สมัครต้องมารายงานตัวก่อนเวลา 30 นาที',
-    date: '2026-03-05',
-  },
-];
-
 export default function Announcements({ isLoggedIn }: AnnouncementsProps) {
-  const [announcements, setAnnouncements] = useState<Announcement[]>(initialAnnouncements);
+  // เปลี่ยนมารับข้อมูลจาก Firebase เป็นหลัก
+  const [announcements, setAnnouncements] = useState<any[]>([]);
   const [isEditing, setIsEditing] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState<Partial<Announcement>>({});
-  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<Partial<any>>({});
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+
+  // 🔴 1. ฟังก์ชันดึงข้อมูลจาก Firebase แบบ Real-time
+  useEffect(() => {
+    if (!db) return;
+    const q = query(collection(db, 'announcements'), orderBy('date', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setAnnouncements(fetchedData);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleAdd = () => {
     setEditingId(null);
@@ -53,29 +49,48 @@ export default function Announcements({ isLoggedIn }: AnnouncementsProps) {
     setIsEditing(true);
   };
 
-  const handleEdit = (announcement: Announcement) => {
+  const handleEdit = (announcement: any) => {
     setEditingId(announcement.id);
     setEditForm({ ...announcement });
     setIsEditing(true);
   };
 
-  const handleSave = () => {
+  // 🔴 2. ฟังก์ชันบันทึกข้อมูลลง Firebase (ทั้งเพิ่มใหม่และแก้ไข)
+  const handleSave = async () => {
     if (!editForm.title || !editForm.content) return;
 
-    if (editingId) {
-      setAnnouncements(announcements.map(a => 
-        a.id === editingId ? { ...a, ...editForm } as Announcement : a
-      ));
-    } else {
-      const newId = Math.max(...announcements.map(a => a.id), 0) + 1;
-      setAnnouncements([...announcements, { ...editForm, id: newId } as Announcement]);
+    try {
+      if (editingId) {
+        // กรณีแก้ไขของเดิม
+        const docRef = doc(db, 'announcements', editingId);
+        await updateDoc(docRef, {
+          title: editForm.title,
+          content: editForm.content,
+          date: editForm.date,
+        });
+      } else {
+        // กรณีเพิ่มประกาศใหม่
+        await addDoc(collection(db, 'announcements'), {
+          title: editForm.title,
+          content: editForm.content,
+          date: editForm.date || new Date().toISOString().split('T')[0],
+          createdAt: new Date().toISOString()
+        });
+      }
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error saving announcement:', error);
     }
-    setIsEditing(false);
   };
 
-  const handleDelete = (id: number) => {
-    setAnnouncements(announcements.filter(a => a.id !== id));
-    setDeleteConfirm(null);
+  // 🔴 3. ฟังก์ชันลบข้อมูลออกจาก Firebase
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'announcements', id));
+      setDeleteConfirm(null);
+    } catch (error) {
+      console.error('Error deleting announcement:', error);
+    }
   };
 
   const formatDate = (dateStr: string) => {
@@ -113,48 +128,54 @@ export default function Announcements({ isLoggedIn }: AnnouncementsProps) {
 
         {/* Announcements List */}
         <div className="space-y-4">
-          {announcements.map((announcement) => (
-            <div
-              key={announcement.id}
-              className="mint-card p-6 relative group animate-fade-in"
-            >
-              {isLoggedIn && (
-                <div className="absolute top-4 right-4 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={() => handleEdit(announcement)}
-                    className="p-2 bg-[#98D8C8]/50 rounded-lg hover:bg-[#98D8C8] transition-colors"
-                  >
-                    <Edit2 className="h-4 w-4 text-[#2C3E50]" />
-                  </button>
-                  <button
-                    onClick={() => setDeleteConfirm(announcement.id)}
-                    className="p-2 bg-red-100 rounded-lg hover:bg-red-200 transition-colors"
-                  >
-                    <Trash2 className="h-4 w-4 text-red-600" />
-                  </button>
-                </div>
-              )}
-              
-              <div className="flex items-start space-x-4">
-                <div className="flex-shrink-0">
-                  <div className="bg-[#F7DC6F]/40 px-3 py-2 rounded-lg border border-[#3498DB]/30 text-center">
-                    <Calendar className="h-5 w-5 text-[#3498DB] mx-auto mb-1" />
-                    <span className="text-xs font-medium text-[#2C3E50]">
-                      {formatDate(announcement.date)}
-                    </span>
+          {announcements.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              ยังไม่มีประกาศในขณะนี้
+            </div>
+          ) : (
+            announcements.map((announcement) => (
+              <div
+                key={announcement.id}
+                className="mint-card p-6 relative group animate-fade-in"
+              >
+                {isLoggedIn && (
+                  <div className="absolute top-4 right-4 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => handleEdit(announcement)}
+                      className="p-2 bg-[#98D8C8]/50 rounded-lg hover:bg-[#98D8C8] transition-colors"
+                    >
+                      <Edit2 className="h-4 w-4 text-[#2C3E50]" />
+                    </button>
+                    <button
+                      onClick={() => setDeleteConfirm(announcement.id)}
+                      className="p-2 bg-red-100 rounded-lg hover:bg-red-200 transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4 text-red-600" />
+                    </button>
+                  </div>
+                )}
+                
+                <div className="flex items-start space-x-4">
+                  <div className="flex-shrink-0">
+                    <div className="bg-[#F7DC6F]/40 px-3 py-2 rounded-lg border border-[#3498DB]/30 text-center">
+                      <Calendar className="h-5 w-5 text-[#3498DB] mx-auto mb-1" />
+                      <span className="text-xs font-medium text-[#2C3E50]">
+                        {formatDate(announcement.date)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-[#2C3E50] mb-2">
+                      {announcement.title}
+                    </h3>
+                    <p className="text-[#2C3E50]/80 leading-relaxed whitespace-pre-line">
+                      {announcement.content}
+                    </p>
                   </div>
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-bold text-[#2C3E50] mb-2">
-                    {announcement.title}
-                  </h3>
-                  <p className="text-[#2C3E50]/80 leading-relaxed">
-                    {announcement.content}
-                  </p>
-                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
 
