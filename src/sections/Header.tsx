@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { signInWithEmailAndPassword, signOut } from 'firebase/auth'; // 👈 นำเข้าฟังก์ชัน Login/Logout
-import { auth } from '../lib/firebase'; // 👈 ดึงสายไฟจาก Firebase
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth'; 
+import { auth } from '../lib/firebase'; 
 import { GraduationCap, Menu, X, User, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,14 +26,10 @@ export default function Header({ onLogin, isLoggedIn }: HeaderProps) {
   const [loginError, setLoginError] = useState('');
   const { settings } = useSettings();
 
-  // 🔴 เปลี่ยนมาใช้การ Login ผ่าน Firebase
   const handleLogin = async () => {
     try {
       setLoginError('');
-      // เราใช้ Email ที่เราไปสร้างไว้ใน Firebase Console
       await signInWithEmailAndPassword(auth, 'admin@darussalam.ac.th', password);
-      
-      // เมื่อ Login สำเร็จ Firebase จะไปสะกิด App.tsx ให้เปลี่ยนสถานะเอง
       setLoginOpen(false);
       setPassword('');
     } catch (error: any) {
@@ -42,10 +38,9 @@ export default function Header({ onLogin, isLoggedIn }: HeaderProps) {
     }
   };
 
-  // 🔴 เปลี่ยนมาใช้การ Logout ผ่าน Firebase
   const handleLogout = async () => {
     try {
-      await signOut(auth); // สั่งให้ Firebase ลืมสถานะเรา
+      await signOut(auth);
       onLogin(false);
     } catch (error) {
       console.error('Error logging out:', error);
@@ -67,11 +62,15 @@ export default function Header({ onLogin, isLoggedIn }: HeaderProps) {
         
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
-            {/* Logo */}
+            {/* Logo Section - ปรับให้เต็มวงที่นี่ */}
             <div className="flex items-center space-x-3">
-              <div className="bg-white/80 p-2 rounded-full border-2 border-[#3498DB] overflow-hidden">
+              <div className="bg-white/80 rounded-full border-2 border-[#3498DB] h-14 w-14 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
                 {settings.logo ? (
-                  <img src={settings.logo} alt="Logo" className="h-8 w-8 object-contain" />
+                  <img 
+                    src={settings.logo} 
+                    alt="Logo" 
+                    className="w-full h-full object-cover" // 👈 แก้ให้รูปเต็มพื้นที่และไม่เบี้ยว
+                  />
                 ) : (
                   <GraduationCap className="h-8 w-8 text-[#2C3E50]" />
                 )}
@@ -102,7 +101,7 @@ export default function Header({ onLogin, isLoggedIn }: HeaderProps) {
               ))}
             </nav>
 
-            {/* Login/Admin Button */}
+            {/* Admin Controls */}
             <div className="flex items-center space-x-2">
               {isLoggedIn ? (
                 <div className="flex items-center space-x-2">
@@ -137,7 +136,6 @@ export default function Header({ onLogin, isLoggedIn }: HeaderProps) {
                 </Button>
               )}
 
-              {/* Mobile Menu Button */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="lg:hidden p-2 rounded-lg hover:bg-[#98D8C8]/30 transition-colors"
@@ -197,7 +195,6 @@ export default function Header({ onLogin, isLoggedIn }: HeaderProps) {
         </Dialog>
       </header>
 
-      {/* Admin Settings */}
       <AdminSettings isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </>
   );
