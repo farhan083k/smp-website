@@ -29,6 +29,7 @@ export const getSettings = async () => {
 
 export const saveSettings = async (settings: any) => {
   await setDoc(doc(db, 'settings', 'site'), settings, { merge: true });
+  return true; // 👈 เติมบรรทัดนี้เข้าไปเพื่อให้ Context รู้ว่าบันทึกเสร็จแล้ว
 };
 
 export const subscribeToSettings = (callback: (data: any) => void) => {
