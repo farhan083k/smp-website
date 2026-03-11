@@ -1,5 +1,7 @@
-import { useState } from 'react';
-import { CalendarDays, MapPin, Plus, Edit2, Trash2, Save } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase'; // 👈 เชื่อมสายไฟเข้า Firebase
+import { CalendarDays, MapPin, Plus, Edit2, Trash2, X, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,23 +11,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import type { Activity } from '@/types';
 
 interface ActivitiesProps {
   isLoggedIn: boolean;
 }
 
-const initialActivities: Activity[] = [
+// ข้อมูลตั้งต้น (จะถูกส่งขึ้น Firebase อัตโนมัติถ้าฐานข้อมูลยังว่างเปล่า)
+const initialActivities = [
   {
-    id: 1,
     title: 'กิจกรรมวันวิทยาศาสตร์แห่งชาติ',
-    description: 'กิจกรรมเฉลิมฉลองวันวิทยาศาสตร์แห่งชาติ ประจำปี 2568 มีการจัดแสดงผลงานวิทยาศาสตร์ของนักเรียน การสาธิตการทดลอง และการแข่งขันทางวิทยาศาสตร์',
+    description: 'กิจกรรมเฉลิมฉลองวันวิทยาศาสตร์แห่งชาติ ประจำปี 2568 มีการจัดแสดงผลงานวิทยาศาสตร์ของ student การสาธิตการทดลอง และการแข่งขันทางวิทยาศาสตร์',
     image: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=400&h=300&fit=crop',
     date: '2026-08-18',
     location: 'โรงเรียนดารุสสาลาม',
   },
   {
-    id: 2,
     title: 'ค่ายคณิตศาสตร์สนุกคิด',
     description: 'ค่ายคณิตศาสตร์ที่จัดขึ้นเพื่อพัฒนาทักษะการคิดเชิงตรรกะและการแก้ปัญหาทางคณิตศาสตร์ผ่านกิจกรรมสนุกๆ และการแข่งขัน',
     image: 'https://images.unsplash.com/photo-1596495578065-6e0763fa1178?w=400&h=300&fit=crop',
@@ -33,7 +33,6 @@ const initialActivities: Activity[] = [
     location: 'ห้องเรียน SMP',
   },
   {
-    id: 3,
     title: 'การแข่งขันวิทยาศาสตร์โอลิมปิกระดับโรงเรียน',
     description: 'การแข่งขันวิทยาศาสตร์โอลิมปิกเพื่อคัดเลือกตัวแทนโรงเรียนเข้าแข่งขันระดับจังหวัดและระดับชาติ',
     image: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=400&h=300&fit=crop',
@@ -41,7 +40,6 @@ const initialActivities: Activity[] = [
     location: 'ห้องสอบโรงเรียน',
   },
   {
-    id: 4,
     title: 'กิจกรรมทัศนศึกษาพิพิธภัณฑ์วิทยาศาสตร์',
     description: 'กิจกรรมทัศนศึกษาที่พิพิธภัณฑ์วิทยาศาสตร์แห่งชาติ กรุงเทพมหานคร เพื่อเสริมสร้างประสบการณ์การเรียนรู้นอกห้องเรียน',
     image: 'https://images.unsplash.com/photo-1564981797816-1043664bf78d?w=400&h=300&fit=crop',
@@ -51,11 +49,39 @@ const initialActivities: Activity[] = [
 ];
 
 export default function Activities({ isLoggedIn }: ActivitiesProps) {
-  const [activities, setActivities] = useState<Activity[]>(initialActivities);
+  const [activities, setActivities] = useState<any[]>([]);
   const [isEditing, setIsEditing] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState<Partial<Activity>>({});
-  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<Partial<any>>({});
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+
+  // 🔴 1. ฟังก์ชันดึงข้อมูลจาก Firebase (และอัปโหลดข้อมูลตั้งต้นถ้ายังไม่มี)
+  useEffect(() => {
+    if (!db) return;
+
+    const initializeData = async () => {
+      const querySnapshot = await getDocs(collection(db, 'activities'));
+      if (querySnapshot.empty) {
+        console.log("No activities found, uploading initial data...");
+        for (const act of initialActivities) {
+          await addDoc(collection(db, 'activities'), act);
+        }
+      }
+    };
+
+    initializeData();
+
+    // ดึงข้อมูลมาแสดงแบบ Real-time (เรียงตามวันที่จากใหม่ไปเก่า)
+    const q = query(collection(db, 'activities'), orderBy('date', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setActivities(fetchedData);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleAdd = () => {
     setEditingId(null);
@@ -63,38 +89,62 @@ export default function Activities({ isLoggedIn }: ActivitiesProps) {
       title: '',
       description: '',
       image: '',
-      date: '',
+      date: new Date().toISOString().split('T')[0],
       location: '',
     });
     setIsEditing(true);
   };
 
-  const handleEdit = (activity: Activity) => {
+  const handleEdit = (activity: any) => {
     setEditingId(activity.id);
     setEditForm({ ...activity });
     setIsEditing(true);
   };
 
-  const handleSave = () => {
+  // 🔴 2. ฟังก์ชันบันทึกข้อมูล
+  const handleSave = async () => {
     if (!editForm.title || !editForm.description) return;
 
-    if (editingId) {
-      setActivities(activities.map(a => 
-        a.id === editingId ? { ...a, ...editForm } as Activity : a
-      ));
-    } else {
-      const newId = Math.max(...activities.map(a => a.id), 0) + 1;
-      setActivities([...activities, { ...editForm, id: newId } as Activity]);
+    try {
+      if (editingId) {
+        // แก้ไข
+        const docRef = doc(db, 'activities', editingId);
+        await updateDoc(docRef, {
+          title: editForm.title,
+          description: editForm.description,
+          image: editForm.image || '',
+          date: editForm.date || '',
+          location: editForm.location || '',
+        });
+      } else {
+        // เพิ่มใหม่
+        await addDoc(collection(db, 'activities'), {
+          title: editForm.title,
+          description: editForm.description,
+          image: editForm.image || '',
+          date: editForm.date || '',
+          location: editForm.location || '',
+          createdAt: new Date().toISOString()
+        });
+      }
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error saving activity:', error);
     }
-    setIsEditing(false);
   };
 
-  const handleDelete = (id: number) => {
-    setActivities(activities.filter(a => a.id !== id));
-    setDeleteConfirm(null);
+  // 🔴 3. ฟังก์ชันลบข้อมูล
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'activities', id));
+      setDeleteConfirm(null);
+    } catch (error) {
+      console.error('Error deleting activity:', error);
+    }
   };
 
   const formatDate = (dateStr: string) => {
+    if (!dateStr) return 'ไม่ระบุวันที่';
     const date = new Date(dateStr);
     return date.toLocaleDateString('th-TH', {
       year: 'numeric',
@@ -146,7 +196,7 @@ export default function Activities({ isLoggedIn }: ActivitiesProps) {
                 {/* Image */}
                 <div className="relative w-full lg:w-48 h-48 lg:h-auto flex-shrink-0 overflow-hidden">
                   <img
-                    src={activity.image}
+                    src={activity.image || 'https://via.placeholder.com/400x300?text=No+Image'}
                     alt={activity.title}
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
@@ -267,6 +317,7 @@ export default function Activities({ isLoggedIn }: ActivitiesProps) {
                 variant="outline"
                 className="flex-1 border-[#3498DB]"
               >
+                <X className="h-4 w-4 mr-2" />
                 ยกเลิก
               </Button>
             </div>
