@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { MoreHorizontal, FileText, Download, ExternalLink, Plus, Edit2, Trash2, X, Save, Link as LinkIcon } from 'lucide-react';
+import { MoreHorizontal, ExternalLink, Plus, Edit2, Trash2, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
