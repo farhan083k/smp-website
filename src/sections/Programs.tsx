@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy, setDoc, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase'; // 👈 เชื่อมสายไฟเข้า Firebase
 import { BookOpen, CheckCircle, Plus, Edit2, Trash2, X, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,15 +11,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import type { Program } from '@/types';
 
 interface ProgramsProps {
   isLoggedIn: boolean;
 }
 
-const initialPrograms: Program[] = [
+// ข้อมูลตั้งต้น (จะถูกส่งขึ้น Firebase อัตโนมัติถ้ายังไม่มี)
+const initialPrograms = [
   {
-    id: 1,
+    order: 1, // ใช้เรียงลำดับ
     title: 'โปรแกรมวิทยาศาสตร์',
     description: 'หลักสูตรที่เน้นการเรียนรู้วิทยาศาสตร์อย่างลึกซึ้ง ผ่านการทดลองและการค้นคว้าด้วยตนเอง นักเรียนจะได้เรียนรู้ฟิสิกส์ เคมี ชีววิทยา และโลกศาสตร์ในระดับที่สูงกว่าหลักสูตรปกติ',
     image: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=400&h=300&fit=crop',
@@ -29,7 +31,7 @@ const initialPrograms: Program[] = [
     ],
   },
   {
-    id: 2,
+    order: 2,
     title: 'โปรแกรมคณิตศาสตร์',
     description: 'หลักสูตรที่พัฒนาทักษะการคิดเชิงตรรกะ การแก้ปัญหา และการวิเคราะห์เชิงคณิตศาสตร์ นักเรียนจะได้เรียนรู้คณิตศาสตร์ขั้นสูง สถิติ และคอมพิวเตอร์',
     image: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&h=300&fit=crop',
@@ -41,7 +43,7 @@ const initialPrograms: Program[] = [
     ],
   },
   {
-    id: 3,
+    order: 3,
     title: 'โปรแกรมภาษาอังกฤษ',
     description: 'หลักสูตรที่พัฒนาทักษะภาษาอังกฤษครบทั้ง 4 ด้าน ฟัง พูด อ่าน เขียน โดยครูเจ้าของภาษาและครูไทยที่มีประสบการณ์',
     image: 'https://images.unsplash.com/photo-1543269865-cbf427effbad?w=400&h=300&fit=crop',
@@ -55,11 +57,40 @@ const initialPrograms: Program[] = [
 ];
 
 export default function Programs({ isLoggedIn }: ProgramsProps) {
-  const [programs, setPrograms] = useState<Program[]>(initialPrograms);
+  const [programs, setPrograms] = useState<any[]>([]);
   const [isEditing, setIsEditing] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState<Partial<Program>>({});
-  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<Partial<any>>({});
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+
+  // 🔴 1. ฟังก์ชันดึงข้อมูลจาก Firebase (และอัปโหลดข้อมูลตั้งต้นให้ถ้าย่อมห่างเปล่า)
+  useEffect(() => {
+    if (!db) return;
+
+    // ฟังก์ชันเช็กและอัปโหลดข้อมูลตั้งต้น
+    const initializeData = async () => {
+      const querySnapshot = await getDocs(collection(db, 'programs'));
+      if (querySnapshot.empty) {
+        console.log("No programs found, uploading initial data...");
+        for (const prog of initialPrograms) {
+          await addDoc(collection(db, 'programs'), prog);
+        }
+      }
+    };
+
+    initializeData();
+
+    // ดึงข้อมูลแบบ Real-time มาแสดง (เรียงตาม order)
+    const q = query(collection(db, 'programs'), orderBy('order', 'asc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setPrograms(fetchedData);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleAdd = () => {
     setEditingId(null);
@@ -68,33 +99,55 @@ export default function Programs({ isLoggedIn }: ProgramsProps) {
       description: '',
       image: '',
       features: [''],
+      order: programs.length + 1 // ให้โปรแกรมใหม่อยู่ต่อท้าย
     });
     setIsEditing(true);
   };
 
-  const handleEdit = (program: Program) => {
+  const handleEdit = (program: any) => {
     setEditingId(program.id);
     setEditForm({ ...program });
     setIsEditing(true);
   };
 
-  const handleSave = () => {
+  // 🔴 2. ฟังก์ชันบันทึกข้อมูล
+  const handleSave = async () => {
     if (!editForm.title || !editForm.description) return;
 
-    if (editingId) {
-      setPrograms(programs.map(p => 
-        p.id === editingId ? { ...p, ...editForm } as Program : p
-      ));
-    } else {
-      const newId = Math.max(...programs.map(p => p.id), 0) + 1;
-      setPrograms([...programs, { ...editForm, id: newId } as Program]);
+    try {
+      if (editingId) {
+        // แก้ไข
+        const docRef = doc(db, 'programs', editingId);
+        await updateDoc(docRef, {
+          title: editForm.title,
+          description: editForm.description,
+          image: editForm.image || '',
+          features: editForm.features || [],
+        });
+      } else {
+        // เพิ่มใหม่
+        await addDoc(collection(db, 'programs'), {
+          title: editForm.title,
+          description: editForm.description,
+          image: editForm.image || '',
+          features: editForm.features || [],
+          order: editForm.order || 99
+        });
+      }
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error saving program:', error);
     }
-    setIsEditing(false);
   };
 
-  const handleDelete = (id: number) => {
-    setPrograms(programs.filter(p => p.id !== id));
-    setDeleteConfirm(null);
+  // 🔴 3. ฟังก์ชันลบข้อมูล
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'programs', id));
+      setDeleteConfirm(null);
+    } catch (error) {
+      console.error('Error deleting program:', error);
+    }
   };
 
   const updateFeature = (index: number, value: string) => {
@@ -146,7 +199,7 @@ export default function Programs({ isLoggedIn }: ProgramsProps) {
               {/* Image */}
               <div className="relative h-48 overflow-hidden">
                 <img
-                  src={program.image}
+                  src={program.image || 'https://via.placeholder.com/400x300?text=No+Image'}
                   alt={program.title}
                   className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
@@ -184,7 +237,7 @@ export default function Programs({ isLoggedIn }: ProgramsProps) {
                     จุดเด่นของหลักสูตร:
                   </h4>
                   <ul className="space-y-1">
-                    {program.features.map((feature, index) => (
+                    {(program.features || []).map((feature: string, index: number) => (
                       <li
                         key={index}
                         className="flex items-start text-sm text-[#2C3E50]/70"
@@ -249,7 +302,7 @@ export default function Programs({ isLoggedIn }: ProgramsProps) {
                 จุดเด่น
               </label>
               <div className="space-y-2">
-                {(editForm.features || []).map((feature, index) => (
+                {(editForm.features || []).map((feature: string, index: number) => (
                   <div key={index} className="flex space-x-2">
                     <Input
                       value={feature}
