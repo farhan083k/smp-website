@@ -1,6 +1,6 @@
 // Firebase Configuration
 // ผู้ใช้ต้องแก้ไขค่าเหล่านี้หลังจากสร้าง Firebase Project
-
+import { getAuth } from 'firebase/auth'; // 👈 เติมบรรทัดนี้ที่บนสุดของไฟล์ lib/firebase.ts
 import { initializeApp } from 'firebase/app';
 import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -119,3 +119,6 @@ export const uploadLogo = async (file: File): Promise<string | null> => {
 export const uploadBanner = async (file: File): Promise<string | null> => {
   return uploadImage(file, `banners/${Date.now()}_${file.name}`);
 };
+
+// เติมบรรทัดนี้ลงไปที่ล่างสุดของไฟล์ src/lib/firebase.ts
+export const auth = getAuth(app);
