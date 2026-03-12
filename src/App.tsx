@@ -4,7 +4,6 @@ import { auth } from './lib/firebase';
 import { SettingsProvider, useSettings } from './contexts/SettingsContext'; // 👈 นำเข้า useSettings
 import Header from './sections/Header';
 import Hero from './sections/Hero';
-import Announcements from './sections/Announcements';
 import Programs from './sections/Programs';
 import Projects from './sections/Projects';
 import Activities from './sections/Activities';
@@ -64,8 +63,7 @@ function AppContent() {
       <main>
         <Hero />
         {/* เราจะแทรกข่าวประชาสัมพันธ์ตรงนี้ครับ 👇 */}
-        <Announcements isLoggedIn={isLoggedIn} />
-        <Announcements isLoggedIn={isLoggedIn} />
+                <Announcements isLoggedIn={isLoggedIn} />
         <Programs isLoggedIn={isLoggedIn} />
         <Projects isLoggedIn={isLoggedIn} />
         <Activities isLoggedIn={isLoggedIn} />
