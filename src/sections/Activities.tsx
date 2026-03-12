@@ -11,19 +11,16 @@ export default function Activities({ isLoggedIn }: { isLoggedIn: boolean }) {
   const [activities, setActivities] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   
-  // State สำหรับแอดมิน
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<any>({});
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // State สำหรับดูรูปขยาย (Lightbox)
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [currentImages, setCurrentImages] = useState<string[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  // 👇 State ใหม่ สำหรับหน้าต่างอ่านรายละเอียดกิจกรรมฉบับเต็ม
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [viewItem, setViewItem] = useState<any>(null);
 
@@ -68,7 +65,6 @@ export default function Activities({ isLoggedIn }: { isLoggedIn: boolean }) {
     setLightboxOpen(true);
   };
 
-  // 👇 ฟังก์ชันเปิดหน้าอ่านรายละเอียด
   const openViewDialog = (act: any) => {
     setViewItem(act);
     setIsViewOpen(true);
@@ -98,13 +94,14 @@ export default function Activities({ isLoggedIn }: { isLoggedIn: boolean }) {
           </div>
         </div>
 
-        <div className="space-y-6">
+        {/* 👇 เปลี่ยนจาก List (space-y-6) เป็น Grid 2 คอลัมน์ (grid grid-cols-1 md:grid-cols-2) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {filteredActivities.length > 0 ? (
             filteredActivities.map((act) => (
-              // 👇 เปลี่ยนการ์ดให้กดได้ทั้งใบ เพื่อเปิดหน้าอ่านรายละเอียด
-              <div key={act.id} onClick={() => openViewDialog(act)} className="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group cursor-pointer border border-gray-100 flex flex-col lg:flex-row hover:-translate-y-1">
+              <div key={act.id} onClick={() => openViewDialog(act)} className="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group cursor-pointer border border-gray-100 flex flex-col hover:-translate-y-1 h-full">
                 
-                <div className="lg:w-80 h-56 lg:h-auto bg-gray-100 relative overflow-hidden shrink-0">
+                {/* 👇 ปรับรูปให้อยู่ด้านบนเสมอ เพื่อให้เข้ากับการ์ด 2 คอลัมน์ */}
+                <div className="w-full h-56 sm:h-64 bg-gray-100 relative overflow-hidden shrink-0">
                   <img src={act.images?.[0] || 'https://via.placeholder.com/400x300?text=No+Image'} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="" />
                   {act.images?.length > 1 && <div className="absolute bottom-3 right-3 bg-black/70 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center backdrop-blur-sm"><ImageIcon className="w-3 h-3 mr-1.5" /> +{act.images.length - 1} รูป</div>}
                 </div>
@@ -119,7 +116,6 @@ export default function Activities({ isLoggedIn }: { isLoggedIn: boolean }) {
                   <p className="text-gray-500 text-sm sm:text-base line-clamp-3 mb-4 flex-1 leading-relaxed">{act.description}</p>
                   <span className="text-[var(--primary)] text-sm font-bold flex items-center mt-auto">อ่านเพิ่มเติม &rarr;</span>
 
-                  {/* ปุ่มแอดมิน */}
                   {isLoggedIn && (
                     <div className="absolute top-4 right-4 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button onClick={(e) => { e.stopPropagation(); setEditingId(act.id); setEditForm(act); setIsEditing(true); }} className="p-2 bg-white/90 hover:bg-blue-50 text-blue-600 rounded-full shadow-md backdrop-blur-sm"><Edit2 className="h-4 w-4" /></button>
@@ -130,7 +126,7 @@ export default function Activities({ isLoggedIn }: { isLoggedIn: boolean }) {
               </div>
             ))
           ) : (
-            <div className="text-center py-20 bg-white rounded-2xl border-2 border-dashed border-gray-200">
+            <div className="col-span-1 md:col-span-2 text-center py-20 bg-white rounded-2xl border-2 border-dashed border-gray-200">
               <Search className="h-12 w-12 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500">ไม่พบกิจกรรมที่ค้นหา ลองพิมพ์ชื่ออื่นดูนะ</p>
             </div>
@@ -138,10 +134,8 @@ export default function Activities({ isLoggedIn }: { isLoggedIn: boolean }) {
         </div>
       </div>
 
-      {/* 👇 📖 หน้าต่าง Pop-up สำหรับ "อ่านรายละเอียดกิจกรรมฉบับเต็ม" */}
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
         <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto p-0 border-none shadow-2xl rounded-2xl">
-          {/* รูปปก */}
           {viewItem?.images?.[0] && (
             <div className="w-full h-64 sm:h-80 relative bg-gray-100 cursor-pointer group" onClick={() => openLightbox(viewItem.images, 0)}>
               <img src={viewItem.images[0]} className="w-full h-full object-cover group-hover:opacity-90 transition-opacity" alt={viewItem.title} />
@@ -167,12 +161,10 @@ export default function Activities({ isLoggedIn }: { isLoggedIn: boolean }) {
             
             <DialogTitle className="text-2xl sm:text-3xl font-bold text-[#2C3E50] leading-tight">{viewItem?.title}</DialogTitle>
             
-            {/* เนื้อหาฉบับเต็ม */}
             <div className="prose prose-blue max-w-none text-gray-600 leading-relaxed whitespace-pre-line text-base sm:text-lg">
               {viewItem?.description}
             </div>
 
-            {/* แกลเลอรีรูปภาพทั้งหมด */}
             {viewItem?.images?.length > 1 && (
               <div className="mt-10 pt-8 border-t border-gray-100">
                 <h4 className="text-xl font-bold text-[#2C3E50] mb-6 flex items-center">
@@ -192,7 +184,6 @@ export default function Activities({ isLoggedIn }: { isLoggedIn: boolean }) {
         </DialogContent>
       </Dialog>
 
-      {/* 🖼️ Lightbox ขยายรูป (อันเดิม แต่ปรับให้ทับ ViewDialog ได้) */}
       <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
         <DialogContent className="max-w-5xl w-[95vw] h-[85vh] p-0 bg-black/95 border-none flex flex-col justify-center items-center z-[100]">
           <div className="relative w-full h-full flex items-center justify-center group">
@@ -211,7 +202,6 @@ export default function Activities({ isLoggedIn }: { isLoggedIn: boolean }) {
         </DialogContent>
       </Dialog>
 
-      {/* 📝 Admin Edit Dialog (ปรับให้มีปุ่มลบรูปภาพได้ง่ายๆ) */}
       <Dialog open={isEditing} onOpenChange={setIsEditing}>
         <DialogContent className="sm:max-w-3xl admin-panel border-none shadow-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="text-xl font-bold flex items-center"><Edit2 className="w-5 h-5 mr-2 text-[var(--primary)]"/> {editingId ? 'แก้ไขกิจกรรม' : 'เพิ่มกิจกรรมใหม่'}</DialogTitle></DialogHeader>
