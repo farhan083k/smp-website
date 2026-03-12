@@ -1,12 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { 
-  getSettings, 
-  saveSettings, 
-  subscribeToSettings, 
-  uploadLogo, 
-  uploadBanner,
-  isValidConfig 
-} from '@/lib/firebase';
+import { getSettings, saveSettings, subscribeToSettings, uploadLogo, uploadBanner, isValidConfig } from '@/lib/firebase';
 
 interface Settings {
   logo: string;
@@ -14,8 +7,37 @@ interface Settings {
   schoolName: string;
   programName: string;
   subtitle: string;
-  primaryColor: string; // 👈 เพิ่มตัวแปรสีหลัก
+  primaryColor: string;
+  // 👇 ตัวแปรใหม่สำหรับหน้าแรก
+  heroTitle1: string;
+  heroTitle2: string;
+  feature1Title: string;
+  feature1Desc: string;
+  feature2Title: string;
+  feature2Desc: string;
+  feature3Title: string;
+  feature3Desc: string;
 }
+
+const defaultSettings: Settings = {
+  logo: '',
+  banner: '',
+  schoolName: 'โรงเรียนดารุสสาลาม ตันหยงมัส นราธิวาส',
+  programName: 'ห้องเรียนโปรแกรมวิทยาศาสตร์และคณิตศาสตร์',
+  subtitle: 'Science and Mathematics Program (SMP)',
+  primaryColor: '#3498DB',
+  // 👇 ค่าเริ่มต้นสำหรับหน้าแรก
+  heroTitle1: 'ห้องเรียนโปรแกรม',
+  heroTitle2: 'วิทยาศาสตร์และคณิตศาสตร์',
+  feature1Title: 'วิทยาศาสตร์',
+  feature1Desc: 'เรียนรู้ผ่านการทดลองและการค้นคว้าจริงในห้องปฏิบัติการที่ทันสมัย',
+  feature2Title: 'คณิตศาสตร์',
+  feature2Desc: 'ฝึกฝนการคิดเชิงตรรกะและการแก้ปัญหาที่ซับซ้อนอย่างเป็นระบบ',
+  feature3Title: 'ภาษาอังกฤษ',
+  feature3Desc: 'เสริมสร้างทักษะการสื่อสารภาษาอังกฤษเพื่อก้าวสู่ระดับสากล',
+};
+
+const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 interface SettingsContextType {
   settings: Settings;
@@ -27,17 +49,6 @@ interface SettingsContextType {
   lastSync: Date | null;
 }
 
-const defaultSettings: Settings = {
-  logo: '',
-  banner: '',
-  schoolName: 'โรงเรียนดารุสสาลาม ตันหยงมัส นราธิวาส',
-  programName: 'ห้องเรียนโปรแกรมวิทยาศาสตร์และคณิตศาสตร์',
-  subtitle: 'Science and Mathematics Program (SMP)',
-  primaryColor: '#3498DB', // 👈 ตั้งค่าสีเริ่มต้นเป็นสีฟ้าเดิม
-};
-
-const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
-
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [isLoading, setIsLoading] = useState(true);
@@ -47,19 +58,14 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const saved = localStorage.getItem('smp-settings');
     if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setSettings(prev => ({ ...prev, ...parsed }));
-      } catch (e) {
-        console.error('Error parsing local settings:', e);
-      }
+      try { setSettings(prev => ({ ...prev, ...JSON.parse(saved) })); } 
+      catch (e) { console.error('Error parsing local settings:', e); }
     }
     setIsLoading(false);
   }, []);
 
   useEffect(() => {
     if (!isFirebaseReady) return;
-    
     getSettings().then((firebaseSettings: any) => {
       if (firebaseSettings) {
         setSettings(prev => ({ ...prev, ...firebaseSettings }));
@@ -67,7 +73,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         setLastSync(new Date());
       }
     });
-
     const unsubscribe = subscribeToSettings((firebaseSettings: any) => {
       if (firebaseSettings) {
         setSettings(prev => ({ ...prev, ...firebaseSettings }));
@@ -75,7 +80,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         setLastSync(new Date());
       }
     });
-
     return () => unsubscribe();
   }, [isFirebaseReady]);
 
@@ -83,7 +87,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     const updatedSettings = { ...settings, ...newSettings };
     setSettings(updatedSettings);
     localStorage.setItem('smp-settings', JSON.stringify(updatedSettings));
-    
     if (isFirebaseReady) {
       try {
         const success = await saveSettings(newSettings);
@@ -92,7 +95,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const uploadLogoFile = async (file: File): Promise<string | null> => {
+  const uploadLogoFile = async (file: File) => {
     if (!isFirebaseReady) return null;
     try {
       const url = await uploadLogo(file);
@@ -101,7 +104,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     } catch (error) { return null; }
   };
 
-  const uploadBannerFile = async (file: File): Promise<string | null> => {
+  const uploadBannerFile = async (file: File) => {
     if (!isFirebaseReady) return null;
     try {
       const url = await uploadBanner(file);
@@ -111,9 +114,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <SettingsContext.Provider value={{ 
-      settings, updateSettings, uploadLogoFile, uploadBannerFile, isLoading, isFirebaseReady, lastSync
-    }}>
+    <SettingsContext.Provider value={{ settings, updateSettings, uploadLogoFile, uploadBannerFile, isLoading, isFirebaseReady, lastSync }}>
       {children}
     </SettingsContext.Provider>
   );

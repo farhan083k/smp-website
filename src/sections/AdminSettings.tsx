@@ -173,3 +173,34 @@ export default function AdminSettings({ isOpen, onClose }: AdminSettingsProps) {
     </Dialog>
   );
 }
+
+{/* 📝 ข้อความหน้าแรก (Hero Section) */}
+          <div className="space-y-4 p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
+            <h3 className="text-lg font-bold text-[#2C3E50] flex items-center">
+              <Type className="h-5 w-5 mr-2 text-[var(--primary)]" /> ข้อความหน้าแรก (Hero & Features)
+            </h3>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className="text-xs font-bold text-[#2C3E50]/60 uppercase ml-1">หัวข้อบรรทัดแรก</label><Input value={formData.heroTitle1 || ''} onChange={(e) => setFormData({ ...formData, heroTitle1: e.target.value })} /></div>
+                <div><label className="text-xs font-bold text-[#2C3E50]/60 uppercase ml-1">หัวข้อบรรทัดที่สอง (สีเด่น)</label><Input value={formData.heroTitle2 || ''} onChange={(e) => setFormData({ ...formData, heroTitle2: e.target.value })} /></div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-3 bg-gray-50 rounded-lg space-y-3">
+                  <p className="text-sm font-bold text-[#2C3E50] border-b pb-2">จุดเด่นที่ 1 (ซ้าย)</p>
+                  <Input placeholder="ชื่อวิชา/จุดเด่น" value={formData.feature1Title || ''} onChange={(e) => setFormData({ ...formData, feature1Title: e.target.value })} />
+                  <Textarea placeholder="คำอธิบาย" rows={3} value={formData.feature1Desc || ''} onChange={(e) => setFormData({ ...formData, feature1Desc: e.target.value })} />
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg space-y-3">
+                  <p className="text-sm font-bold text-[#2C3E50] border-b pb-2">จุดเด่นที่ 2 (กลาง)</p>
+                  <Input placeholder="ชื่อวิชา/จุดเด่น" value={formData.feature2Title || ''} onChange={(e) => setFormData({ ...formData, feature2Title: e.target.value })} />
+                  <Textarea placeholder="คำอธิบาย" rows={3} value={formData.feature2Desc || ''} onChange={(e) => setFormData({ ...formData, feature2Desc: e.target.value })} />
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg space-y-3">
+                  <p className="text-sm font-bold text-[#2C3E50] border-b pb-2">จุดเด่นที่ 3 (ขวา)</p>
+                  <Input placeholder="ชื่อวิชา/จุดเด่น" value={formData.feature3Title || ''} onChange={(e) => setFormData({ ...formData, feature3Title: e.target.value })} />
+                  <Textarea placeholder="คำอธิบาย" rows={3} value={formData.feature3Desc || ''} onChange={(e) => setFormData({ ...formData, feature3Desc: e.target.value })} />
+                </div>
+              </div>
+            </div>
+          </div>
