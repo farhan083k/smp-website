@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Move, ZoomIn, RotateCcw, X, ArrowsUpFromLine, ArrowsLeftRight } from 'lucide-react';
+import { Move, ZoomIn, RotateCcw, X, ArrowUpFromLine, ArrowLeftRight } from 'lucide-react';
 
 interface ImageTransform {
   scale: number;
@@ -29,7 +29,6 @@ export default function ImageTransformEditor({
 
   return (
     <div className="fixed inset-0 bg-black/95 z-[100] flex flex-col p-4 md:p-10 backdrop-blur-md overflow-hidden">
-      {/* ส่วนหัวหน้าต่าง */}
       <div className="flex items-center justify-between mb-6 max-w-5xl mx-auto w-full shrink-0">
         <h3 className="text-xl font-bold text-white flex items-center">
           <Move className="w-6 h-6 mr-3 text-blue-400" /> 
@@ -49,7 +48,6 @@ export default function ImageTransformEditor({
       </div>
 
       <div className="flex-1 max-w-5xl mx-auto w-full flex flex-col md:flex-row gap-8 overflow-hidden">
-        {/* พื้นที่แสดงผล */}
         <div className="flex-1 bg-[#111] rounded-3xl overflow-hidden border-2 border-white/10 relative flex items-center justify-center shadow-2xl">
             <div className="relative w-full h-full flex items-center justify-center">
                 <img 
@@ -66,53 +64,40 @@ export default function ImageTransformEditor({
             <div className="absolute inset-0 pointer-events-none border border-blue-500/20 grid grid-cols-2 grid-rows-2 opacity-50"></div>
         </div>
 
-        {/* แผงควบคุม (Sliders) */}
         <div className="w-full md:w-80 space-y-8 bg-white/5 p-6 rounded-3xl border border-white/10 shrink-0">
-            {/* ปรับขนาด */}
             <div className="space-y-4">
                 <label className="text-sm font-bold text-gray-300 flex items-center justify-between">
                     <span className="flex items-center"><ZoomIn className="w-4 h-4 mr-2 text-blue-400"/> ขนาด (Scale)</span>
                     <span className="text-xs font-mono text-blue-400">{transform.scale.toFixed(2)}x</span>
                 </label>
                 <input 
-                    type="range" 
-                    min="0.1" 
-                    max="5" 
-                    step="0.01" 
+                    type="range" min="0.1" max="5" step="0.01" 
                     value={transform.scale} 
                     onChange={(e) => setTransform({...transform, scale: parseFloat(e.target.value)})}
                     className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-blue-500" 
                 />
             </div>
 
-            {/* ปรับแกน X */}
             <div className="space-y-4">
                 <label className="text-sm font-bold text-gray-400 flex items-center justify-between">
-                    <span className="flex items-center"><ArrowsLeftRight className="w-4 h-4 mr-2 text-blue-400"/> ซ้าย - ขวา (X)</span>
+                    <span className="flex items-center"><ArrowLeftRight className="w-4 h-4 mr-2 text-blue-400"/> ซ้าย - ขวา (X)</span>
                     <span className="text-xs font-mono text-white">{transform.x} px</span>
                 </label>
                 <input 
-                    type="range" 
-                    min="-800" 
-                    max="800" 
-                    step="1" 
+                    type="range" min="-800" max="800" step="1" 
                     value={transform.x} 
                     onChange={(e) => setTransform({...transform, x: parseInt(e.target.value)})}
                     className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-blue-500" 
                 />
             </div>
 
-            {/* ปรับแกน Y */}
             <div className="space-y-4">
                 <label className="text-sm font-bold text-gray-400 flex items-center justify-between">
-                    <span className="flex items-center"><ArrowsUpFromLine className="w-4 h-4 mr-2 text-blue-400"/> บน - ล่าง (Y)</span>
+                    <span className="flex items-center"><ArrowUpFromLine className="w-4 h-4 mr-2 text-blue-400"/> บน - ล่าง (Y)</span>
                     <span className="text-xs font-mono text-white">{transform.y} px</span>
                 </label>
                 <input 
-                    type="range" 
-                    min="-800" 
-                    max="800" 
-                    step="1" 
+                    type="range" min="-800" max="800" step="1" 
                     value={transform.y} 
                     onChange={(e) => setTransform({...transform, y: parseInt(e.target.value)})}
                     className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-blue-500" 
@@ -120,7 +105,7 @@ export default function ImageTransformEditor({
             </div>
             
             <div className="text-[10px] text-gray-500 bg-black/20 p-4 rounded-xl border border-white/5 leading-relaxed">
-              💡 **คำแนะนำ:** ใช้แถบเลื่อนเพื่อปรับตำแหน่งให้โลโก้หรือแบนเนอร์อยู่กึ่งกลางพอดี รูปจะนิ่งไม่เลื่อนไหลตามเมาส์ครับ
+              💡 **คำแนะนำ:** เลื่อนแถบเพื่อปรับตำแหน่งรูปให้สวยงามนิ่งสนิทครับ
             </div>
         </div>
       </div>

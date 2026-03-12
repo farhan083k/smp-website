@@ -1,10 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-// 👇 ลบ X ออกจากตรงนี้แล้วครับ
-import { Settings, Image, Type, Save, Upload, Palette, Contact, ListOrdered, Loader2, Move } from 'lucide-react';
+import { Settings, Image, ListOrdered, Loader2, Move } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useSettings } from '@/contexts/SettingsContext';
 import ImageTransformEditor from '@/components/Admin/ImageTransformEditor';
@@ -85,7 +82,7 @@ export default function AdminSettings({ isOpen, onClose }: AdminSettingsProps) {
                 <div className="h-24 w-24 rounded-full border-4 border-gray-100 overflow-hidden bg-gray-50 flex items-center justify-center">
                     {formData.logo ? ( <img src={formData.logo} alt="Logo" className="max-w-none origin-center" style={{transform: `translate(${formData.logoTransform.x}px, ${formData.logoTransform.y}px) scale(${formData.logoTransform.scale})`}} /> ) : ( <Image className="h-8 w-8 text-gray-300" /> )}
                 </div>
-                <div className="flex-1 w-full space-y-2">
+                <div className="flex-1 w-full">
                     <div className="flex gap-2">
                         <input type="file" ref={logoInputRef} onChange={(e) => handleFileChange('logo', e)} accept="image/*" className="hidden" />
                         <Button onClick={() => logoInputRef.current?.click()} variant="outline" className="flex-1 border-dashed">อัปโหลดโลโก้</Button>
@@ -94,7 +91,7 @@ export default function AdminSettings({ isOpen, onClose }: AdminSettingsProps) {
                 </div>
               </div>
               <div className="relative h-32 w-full rounded-xl border-2 overflow-hidden bg-gray-100">
-                {formData.banner ? ( <img src={formData.banner} alt="Banner" className="max-w-none origin-center" style={{transform: `translate(${formData.bannerTransform.x}px, ${formData.bannerTransform.y}px) scale(${formData.bannerTransform.scale})`}} /> ) : ( <div className="h-full flex items-center justify-center text-gray-400">ยังไม่มีแบนเนอร์</div> )}
+                {formData.banner ? ( <img src={formData.banner} alt="Banner" className="max-w-none origin-center" style={{transform: `translate(${formData.bannerTransform.x}px, ${formData.bannerTransform.y}px) scale(${formData.bannerTransform.scale})`}} /> ) : ( <div className="h-full flex items-center justify-center text-gray-400 text-xs">ยังไม่มีแบนเนอร์</div> )}
               </div>
               <div className="flex gap-2 mt-2">
                 <input type="file" ref={bannerInputRef} onChange={(e) => handleFileChange('banner', e)} accept="image/*" className="hidden" />
@@ -103,7 +100,7 @@ export default function AdminSettings({ isOpen, onClose }: AdminSettingsProps) {
               </div>
             </div>
 
-            <Button onClick={handleSave} className="w-full h-12 text-lg" style={{ backgroundColor: 'var(--primary)' }}>บันทึกทั้งหมด</Button>
+            <Button onClick={handleSave} className="w-full h-12 text-lg font-bold shadow-lg" style={{ backgroundColor: 'var(--primary)' }}>บันทึกทั้งหมด</Button>
           </div>
         </DialogContent>
       </Dialog>
