@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getSettings, saveSettings, subscribeToSettings, uploadLogo, uploadBanner, isValidConfig } from '@/lib/firebase';
 
-// 👇 อินเทอร์เฟซใหม่สำหรับเก็บค่าการปรับแต่งรูปภาพ
 interface ImageTransform {
   scale: number;
   x: number;
@@ -11,10 +10,8 @@ interface ImageTransform {
 interface Settings {
   logo: string;
   banner: string;
-  // 👇 เพิ่มตัวแปรเก็บค่าการปรับแต่ง
   logoTransform: ImageTransform;
   bannerTransform: ImageTransform;
-  
   schoolName: string;
   programName: string;
   subtitle: string;
@@ -27,24 +24,35 @@ interface Settings {
   feature2Desc: string;
   feature3Title: string;
   feature3Desc: string;
+  
+  // 👇 เพิ่มตัวแปรที่หายไป (Fix Hero.tsx errors)
+  feature1Icon: string;
+  feature2Icon: string;
+  feature3Icon: string;
+  feature1Bg: string;
+  feature2Bg: string;
+  feature3Bg: string;
+
   address: string;
   phone: string;
   email: string;
   facebookUrl: string;
+  
+  // 👇 เพิ่มตัวแปรลำดับ (Fix SectionRenderer.tsx errors)
   orderAnnouncements: number;
   orderDocuments: number;
   orderPrograms: number;
   orderActivities: number;
   orderStaff: number;
+  orderProjects: number; 
+  orderOthers: number;
 }
 
 const defaultSettings: Settings = {
   logo: '',
   banner: '',
-  // 👇 ค่าเริ่มต้น (ขนาดปกติ, อยู่ตรงกลาง)
   logoTransform: { scale: 1, x: 0, y: 0 },
   bannerTransform: { scale: 1, x: 0, y: 0 },
-  
   schoolName: 'โรงเรียนดารุสสาลาม ตันหยงมัส นราธิวาส',
   programName: 'ห้องเรียนโปรแกรมวิทยาศาสตร์และคณิตศาสตร์',
   subtitle: 'Science and Mathematics Program (SMP)',
@@ -57,15 +65,13 @@ const defaultSettings: Settings = {
   feature2Desc: 'ฝึกฝนการคิดเชิงตรรกะและการแก้ปัญหาที่ซับซ้อนอย่างเป็นระบบ',
   feature3Title: 'ภาษาอังกฤษ',
   feature3Desc: 'เสริมสร้างทักษะการสื่อสารภาษาอังกฤษเพื่อก้าวสู่ระดับสากล',
+  feature1Icon: '', feature2Icon: '', feature3Icon: '',
+  feature1Bg: '', feature2Bg: '', feature3Bg: '',
   address: 'โรงเรียนดารุสสาลาม ตันหยงมัส นราธิวาส\nต.ตันหยงมัส อ.ระแงะ จ.นราธิวาส 96110',
   phone: '073-671-xxx',
   email: 'smp@darussalam.ac.th',
   facebookUrl: 'https://facebook.com',
-  orderAnnouncements: 1,
-  orderDocuments: 2,
-  orderPrograms: 3,
-  orderActivities: 4,
-  orderStaff: 5,
+  orderAnnouncements: 1, orderDocuments: 2, orderPrograms: 3, orderActivities: 4, orderStaff: 5, orderProjects: 6, orderOthers: 7,
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
