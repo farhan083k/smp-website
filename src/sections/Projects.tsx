@@ -1,408 +1,227 @@
-import { useState, useEffect } from 'react';
-import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase'; // 👈 เชื่อมสายไฟเข้า Firebase
-import { FolderOpen, Calendar, Clock, Plus, Edit2, Trash2, Save } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
+import { db, uploadMultipleImages } from '../lib/firebase';
+import { Plus, Edit2, Trash2, Loader2, Target, Calendar, Image as ImageIcon, X, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
-interface ProjectsProps {
-  isLoggedIn: boolean;
-}
-
-// ข้อมูลตั้งต้น (จะถูกส่งขึ้น Firebase อัตโนมัติถ้าฐานข้อมูลยังว่างเปล่า)
-const initialProjects = [
-  {
-    order: 1, // ใช้สำหรับเรียงลำดับ
-    title: 'โครงการค่ายวิทยาศาสตร์เชิงลึก',
-    description: 'ค่ายวิทยาศาสตร์ระดับชาติสำหรับนักเรียนที่มีความสนใจด้านวิทยาศาสตร์ ได้รับการสนับสนุนจากสถาบันวิทยาศาสตร์และเทคโนโลยีแห่งประเทศไทย',
-    image: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=400&h=300&fit=crop',
-    status: 'ongoing',
-    startDate: '2026-04-01',
-    endDate: '2026-04-05',
-  },
-  {
-    order: 2,
-    title: 'โครงการแลกเปลี่ยนวัฒนธรรมกับสิงคโปร์',
-    description: 'โครงการแลกเปลี่ยนวัฒนธรรมและการศึกษากับโรงเรียนชั้นนำในสิงคโปร์ ระยะเวลา 1 สัปดาห์',
-    image: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=400&h=300&fit=crop',
-    status: 'upcoming',
-    startDate: '2026-06-15',
-    endDate: '2026-06-22',
-  },
-  {
-    order: 3,
-    title: 'โครงการติวเข้มคณิตศาสตร์โอลิมปิก',
-    description: 'โครงการติวเข้มเตรียมความพร้อมสำหรับการแข่งขันคณิตศาสตร์โอลิมปิกระดับชาติและนานาชาติ',
-    image: 'https://images.unsplash.com/photo-1596495578065-6e0763fa1178?w=400&h=300&fit=crop',
-    status: 'completed',
-    startDate: '2025-11-01',
-    endDate: '2026-01-31',
-  },
-  {
-    order: 4,
-    title: 'โครงการวิจัยเยาวชน',
-    description: 'โครงการสนับสนุนให้นักเรียนทำโครงงานวิจัยในหัวข้อที่สนใจ ภายใต้การดูแลของอาจารย์ที่ปรึกษา',
-    image: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=400&h=300&fit=crop',
-    status: 'ongoing',
-    startDate: '2026-01-15',
-    endDate: '2026-11-30',
-  },
-];
-
-const statusLabels = {
-  ongoing: { text: 'กำลังดำเนินการ', color: 'bg-blue-100 text-blue-700 border-blue-300' },
-  completed: { text: 'เสร็จสิ้น', color: 'bg-green-100 text-green-700 border-green-300' },
-  upcoming: { text: 'upcoming', color: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
-};
-
-export default function Projects({ isLoggedIn }: ProjectsProps) {
+export default function Projects({ isLoggedIn }: { isLoggedIn: boolean }) {
   const [projects, setProjects] = useState<any[]>([]);
+  
+  // State สำหรับแอดมิน
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<Partial<any>>({});
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<any>({});
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 🔴 1. ฟังก์ชันดึงข้อมูลจาก Firebase (และอัปโหลดข้อมูลตั้งต้น)
+  // State สำหรับอ่านรายละเอียด
+  const [isViewOpen, setIsViewOpen] = useState(false);
+  const [viewItem, setViewItem] = useState<any>(null);
+
   useEffect(() => {
-    if (!db) return;
-
-    const initializeData = async () => {
-      const querySnapshot = await getDocs(collection(db, 'projects'));
-      if (querySnapshot.empty) {
-        console.log("No projects found, uploading initial data...");
-        for (const proj of initialProjects) {
-          await addDoc(collection(db, 'projects'), proj);
-        }
-      }
-    };
-
-    initializeData();
-
-    // ดึงข้อมูลมาแสดงแบบ Real-time (เรียงตาม order)
-    const q = query(collection(db, 'projects'), orderBy('order', 'asc'));
+    const q = query(collection(db, 'projects'), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setProjects(fetchedData);
+      setProjects(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
     return () => unsubscribe();
   }, []);
 
-  const handleAdd = () => {
-    setEditingId(null);
-    setEditForm({
-      title: '',
-      description: '',
-      image: '',
-      status: 'upcoming',
-      startDate: '',
-      endDate: '',
-      order: projects.length + 1
-    });
-    setIsEditing(true);
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setIsUploading(true);
+    try {
+      const urls = await uploadMultipleImages(files, 'projects');
+      if (urls && urls.length > 0) setEditForm({ ...editForm, image: urls[0] });
+    } catch (error) { alert("อัปโหลดรูปภาพไม่สำเร็จ"); } 
+    finally { setIsUploading(false); }
   };
 
-  const handleEdit = (project: any) => {
-    setEditingId(project.id);
-    setEditForm({ ...project });
-    setIsEditing(true);
-  };
-
-  // 🔴 2. ฟังก์ชันบันทึกข้อมูล
   const handleSave = async () => {
-    if (!editForm.title || !editForm.description) return;
-
+    if (!editForm.title || !editForm.description) return alert("กรุณากรอกชื่อและรายละเอียดโครงการ");
     try {
       if (editingId) {
-        // แก้ไขของเดิม
-        const docRef = doc(db, 'projects', editingId);
-        await updateDoc(docRef, {
-          title: editForm.title,
-          description: editForm.description,
-          image: editForm.image || '',
-          status: editForm.status || 'upcoming',
-          startDate: editForm.startDate || '',
-          endDate: editForm.endDate || '',
-        });
+        await updateDoc(doc(db, 'projects', editingId), { ...editForm });
       } else {
-        // เพิ่มของใหม่
-        await addDoc(collection(db, 'projects'), {
-          title: editForm.title,
-          description: editForm.description,
-          image: editForm.image || '',
-          status: editForm.status || 'upcoming',
-          startDate: editForm.startDate || '',
-          endDate: editForm.endDate || '',
-          order: editForm.order || 99
-        });
+        await addDoc(collection(db, 'projects'), { ...editForm, createdAt: new Date().toISOString() });
       }
       setIsEditing(false);
-    } catch (error) {
-      console.error('Error saving project:', error);
-    }
+    } catch (error) { alert("บันทึกข้อมูลไม่สำเร็จ"); }
   };
 
-  // 🔴 3. ฟังก์ชันลบข้อมูล
   const handleDelete = async (id: string) => {
-    try {
-      await deleteDoc(doc(db, 'projects', id));
-      setDeleteConfirm(null);
-    } catch (error) {
-      console.error('Error deleting project:', error);
-    }
+    if (window.confirm("คุณต้องการลบโครงการนี้ใช่หรือไม่?")) await deleteDoc(doc(db, 'projects', id));
   };
 
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return 'ไม่ระบุ';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('th-TH', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+  const openAddDialog = () => {
+    setEditingId(null);
+    setEditForm({ title: '', description: '', image: '', status: 'กำลังดำเนินการ' });
+    setIsEditing(true);
   };
 
-  // ฟังก์ชันช่วยดึงข้อมูลสถานะป้องกันเว็บพัง
-  const getStatusInfo = (statusKey: string) => {
-    const validKey = statusKey as keyof typeof statusLabels;
-    return statusLabels[validKey] || statusLabels['upcoming'];
+  const openEditDialog = (item: any) => {
+    setEditingId(item.id);
+    setEditForm(item);
+    setIsEditing(true);
+  };
+
+  const openViewDialog = (item: any) => {
+    setViewItem(item);
+    setIsViewOpen(true);
+  };
+
+  const formatDate = (isoString: string) => {
+    if (!isoString) return '';
+    return new Date(isoString).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
   return (
-    <section id="projects" className="py-16 relative">
+    <section id="projects" className="py-16 bg-white border-t border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center">
-            <div className="bg-[#98D8C8]/30 p-3 rounded-full border-2 border-[#3498DB] mr-4">
-              <FolderOpen className="h-6 w-6 text-[#3498DB]" />
-            </div>
-            <div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-[#2C3E50]">
-                โครงการ
-              </h2>
-              <p className="text-[#2C3E50]/70">โครงการและกิจกรรมของห้องเรียน</p>
-            </div>
-          </div>
+        
+        <div className="flex justify-between items-center mb-10 border-b pb-4">
+          <h2 className="text-3xl font-bold text-[#2C3E50] flex items-center">
+            <Target className="mr-3 h-8 w-8 text-indigo-600" />
+            โครงการ (Projects)
+          </h2>
           {isLoggedIn && (
-            <Button onClick={handleAdd} className="btn-primary">
-              <Plus className="h-4 w-4 mr-2" />
-              เพิ่มโครงการ
+            <Button onClick={openAddDialog} className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md">
+              <Plus className="mr-2 h-4 w-4" /> เพิ่มโครงการ
             </Button>
           )}
         </div>
 
-        {/* Projects Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {projects.map((project) => (
-            <div
-              key={project.id}
-              className="mint-card overflow-hidden group animate-fade-in"
-            >
-              <div className="flex flex-col sm:flex-row">
-                {/* Image */}
-                <div className="relative w-full sm:w-48 h-48 sm:h-auto flex-shrink-0 overflow-hidden">
-                  <img
-                    src={project.image || 'https://via.placeholder.com/400x300?text=No+Image'}
-                    alt={project.title}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                  <div className="absolute top-2 left-2">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusInfo(project.status).color}`}>
-                      {getStatusInfo(project.status).text}
-                    </span>
+        {projects.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {projects.map((item) => (
+              <div key={item.id} onClick={() => openViewDialog(item)} className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 relative group cursor-pointer flex flex-col overflow-hidden border border-gray-100 hover:-translate-y-2">
+                
+                {/* รูปปกโครงการ */}
+                {item.image ? (
+                  <div className="h-56 w-full overflow-hidden relative">
+                    <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60"></div>
+                  </div>
+                ) : (
+                  <div className="h-32 bg-indigo-100 w-full flex items-center justify-center">
+                    <Target className="h-10 w-10 text-indigo-300" />
+                  </div>
+                )}
+                
+                {/* สถานะโครงการ (ป้ายกำกับ) */}
+                <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-indigo-700 shadow-sm border border-indigo-100">
+                  {item.status || 'โครงการ SMP'}
+                </div>
+                
+                <div className="p-6 flex-1 flex flex-col bg-white relative z-10 -mt-6 mx-4 rounded-xl shadow-sm border border-gray-50 mb-4 group-hover:border-indigo-100 transition-colors">
+                  <h3 className="text-xl font-bold text-[#2C3E50] mb-2 line-clamp-2">{item.title}</h3>
+                  <p className="text-gray-500 text-sm line-clamp-2 mb-4 flex-1">{item.description}</p>
+                  
+                  <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
+                    <div className="flex items-center text-xs text-gray-400 font-medium">
+                      <Calendar className="h-3 w-3 mr-1" /> {formatDate(item.createdAt)}
+                    </div>
+                    <span className="text-indigo-600 text-sm font-bold flex items-center group-hover:translate-x-1 transition-transform">รายละเอียด <ArrowRight className="ml-1 w-4 h-4" /></span>
                   </div>
                 </div>
 
-                {/* Content */}
-                <div className="flex-1 p-5 relative">
-                  {isLoggedIn && (
-                    <div className="absolute top-3 right-3 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => handleEdit(project)}
-                        className="p-2 bg-[#98D8C8]/50 rounded-lg hover:bg-[#98D8C8] transition-colors"
-                      >
-                        <Edit2 className="h-4 w-4 text-[#2C3E50]" />
-                      </button>
-                      <button
-                        onClick={() => setDeleteConfirm(project.id)}
-                        className="p-2 bg-red-100 rounded-lg hover:bg-red-200 transition-colors"
-                      >
-                        <Trash2 className="h-4 w-4 text-red-600" />
-                      </button>
-                    </div>
-                  )}
-
-                  <h3 className="text-lg font-bold text-[#2C3E50] mb-2 pr-16">
-                    {project.title}
-                  </h3>
-                  <p className="text-[#2C3E50]/80 text-sm mb-4 line-clamp-3">
-                    {project.description}
-                  </p>
-
-                  {/* Dates */}
-                  <div className="flex items-center space-x-4 text-xs text-[#2C3E50]/60">
-                    <div className="flex items-center">
-                      <Calendar className="h-3 w-3 mr-1" />
-                      <span>เริ่ม: {formatDate(project.startDate)}</span>
-                    </div>
-                    {project.endDate && (
-                      <div className="flex items-center">
-                        <Clock className="h-3 w-3 mr-1" />
-                        <span>สิ้นสุด: {formatDate(project.endDate)}</span>
-                      </div>
-                    )}
+                {isLoggedIn && (
+                  <div className="absolute top-4 right-4 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                    <button onClick={(e) => { e.stopPropagation(); openEditDialog(item); }} className="p-2 bg-white/90 text-blue-600 rounded-full shadow hover:bg-blue-50 backdrop-blur-sm"><Edit2 className="h-4 w-4" /></button>
+                    <button onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }} className="p-2 bg-white/90 text-red-500 rounded-full shadow hover:bg-red-50 backdrop-blur-sm"><Trash2 className="h-4 w-4" /></button>
                   </div>
-                </div>
+                )}
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-16 text-gray-500 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+            <Target className="h-12 w-12 mx-auto mb-3 text-indigo-300" />
+            <p>ยังไม่มีข้อมูลโครงการในระบบ</p>
+          </div>
+        )}
       </div>
 
-      {/* Edit Dialog */}
-      <Dialog open={isEditing} onOpenChange={setIsEditing}>
-        <DialogContent className="sm:max-w-lg admin-panel max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-[#2C3E50]">
-              {editingId ? 'แก้ไขโครงการ' : 'เพิ่มโครงการ'}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-4">
-            <div>
-              <label className="block text-sm font-medium text-[#2C3E50] mb-2">
-                ชื่อโครงการ
-              </label>
-              <Input
-                value={editForm.title || ''}
-                onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                placeholder="ชื่อโครงการ"
-                className="border-[#3498DB]"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[#2C3E50] mb-2">
-                รูปภาพ URL
-              </label>
-              <Input
-                value={editForm.image || ''}
-                onChange={(e) => setEditForm({ ...editForm, image: e.target.value })}
-                placeholder="https://example.com/image.jpg"
-                className="border-[#3498DB]"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[#2C3E50] mb-2">
-                สถานะ
-              </label>
-              <Select
-                value={editForm.status || 'upcoming'}
-                onValueChange={(value) => setEditForm({ ...editForm, status: value })}
-              >
-                <SelectTrigger className="border-[#3498DB]">
-                  <SelectValue placeholder="เลือกสถานะ" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ongoing">กำลังดำเนินการ</SelectItem>
-                  <SelectItem value="completed">เสร็จสิ้น</SelectItem>
-                  <SelectItem value="upcoming">upcoming</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-[#2C3E50] mb-2">
-                  วันที่เริ่ม
-                </label>
-                <Input
-                  type="date"
-                  value={editForm.startDate || ''}
-                  onChange={(e) => setEditForm({ ...editForm, startDate: e.target.value })}
-                  className="border-[#3498DB]"
-                />
+      {/* 📖 หน้าต่างอ่านรายละเอียดโครงการ */}
+      <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto p-0 border-none shadow-2xl rounded-2xl">
+          {viewItem?.image && (
+            <div className="w-full h-64 sm:h-80 relative bg-gray-100">
+              <img src={viewItem.image} alt={viewItem.title} className="w-full h-full object-cover" />
+              <div className="absolute bottom-4 left-6 bg-white/90 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm font-bold text-indigo-700 shadow-sm">
+                สถานะ: {viewItem.status || 'กำลังดำเนินการ'}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-[#2C3E50] mb-2">
-                  วันที่สิ้นสุด
-                </label>
-                <Input
-                  type="date"
-                  value={editForm.endDate || ''}
-                  onChange={(e) => setEditForm({ ...editForm, endDate: e.target.value })}
-                  className="border-[#3498DB]"
-                />
-              </div>
+              <button onClick={() => setIsViewOpen(false)} className="absolute top-4 right-4 p-2 bg-black/50 text-white rounded-full hover:bg-red-500 transition-colors backdrop-blur-sm"><X className="h-5 w-5" /></button>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-[#2C3E50] mb-2">
-                คำอธิบาย
-              </label>
-              <Textarea
-                value={editForm.description || ''}
-                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                placeholder="คำอธิบายโครงการ"
-                rows={4}
-                className="border-[#3498DB]"
-              />
+          )}
+          <div className="p-6 sm:p-8 space-y-6">
+            {!viewItem?.image && (
+               <div className="flex justify-between items-center mb-[-1rem]">
+                  <div className="bg-indigo-50 px-3 py-1 rounded-full text-sm font-bold text-indigo-700">สถานะ: {viewItem?.status || 'กำลังดำเนินการ'}</div>
+                  <button onClick={() => setIsViewOpen(false)} className="p-2 text-gray-400 hover:text-red-500 rounded-full transition-colors"><X className="h-6 w-6" /></button>
+               </div>
+            )}
+            
+            <DialogTitle className="text-2xl sm:text-3xl font-bold text-[#2C3E50] leading-tight mt-2">{viewItem?.title}</DialogTitle>
+            <div className="flex items-center text-sm text-gray-500">
+              <Calendar className="h-4 w-4 mr-2" /> โพสต์เมื่อ: {formatDate(viewItem?.createdAt)}
             </div>
-            <div className="flex space-x-3 pt-2">
-              <Button onClick={handleSave} className="flex-1 btn-primary">
-                <Save className="h-4 w-4 mr-2" />
-                บันทึก
-              </Button>
-              <Button
-                onClick={() => setIsEditing(false)}
-                variant="outline"
-                className="flex-1 border-[#3498DB]"
-              >
-                ยกเลิก
-              </Button>
+            
+            <div className="prose prose-indigo max-w-none text-gray-600 leading-relaxed whitespace-pre-line text-base sm:text-lg border-t border-gray-100 pt-6">
+              {viewItem?.description}
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
-      <Dialog open={deleteConfirm !== null} onOpenChange={() => setDeleteConfirm(null)}>
-        <DialogContent className="sm:max-w-md admin-panel">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-[#2C3E50]">
-              ยืนยันการลบ
-            </DialogTitle>
-          </DialogHeader>
-          <p className="text-[#2C3E50]/80 py-4">
-            คุณต้องการลบโครงการนี้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้
-          </p>
-          <div className="flex space-x-3">
-            <Button
-              onClick={() => deleteConfirm && handleDelete(deleteConfirm)}
-              className="flex-1 bg-red-500 hover:bg-red-600 text-white"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              ลบ
-            </Button>
-            <Button
-              onClick={() => setDeleteConfirm(null)}
-              variant="outline"
-              className="flex-1 border-[#3498DB]"
-            >
-              ยกเลิก
+      {/* 📝 หน้าต่างสำหรับแอดมิน (เพิ่ม/แก้ไขโครงการ) */}
+      <Dialog open={isEditing} onOpenChange={setIsEditing}>
+        <DialogContent className="sm:max-w-xl admin-panel border-none shadow-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="text-xl font-bold flex items-center text-indigo-700"><Target className="w-5 h-5 mr-2"/> {editingId ? 'แก้ไขโครงการ' : 'เพิ่มโครงการใหม่'}</DialogTitle></DialogHeader>
+          <div className="space-y-5 pt-4">
+            
+            <div>
+              <label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-2 block">รูปภาพหน้าปกโครงการ</label>
+              <div className="relative h-40 w-full rounded-xl border-2 border-dashed border-gray-300 overflow-hidden bg-gray-50 group flex items-center justify-center cursor-pointer hover:bg-indigo-50 hover:border-indigo-300 transition-colors" onClick={() => fileInputRef.current?.click()}>
+                {editForm.image ? ( <img src={editForm.image} alt="Preview" className="w-full h-full object-cover" /> ) : ( <div className="text-center text-gray-400"><ImageIcon className="w-10 h-10 mx-auto mb-2 opacity-50" /><span className="text-sm">คลิกเพื่ออัปโหลดรูปภาพ</span></div> )}
+                <div className={`absolute inset-0 bg-black/50 flex items-center justify-center transition-opacity ${isUploading ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                  {isUploading ? <Loader2 className="w-8 h-8 text-white animate-spin" /> : <Upload className="w-8 h-8 text-white" />}
+                </div>
+              </div>
+              <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" />
+              {editForm.image && <button onClick={() => setEditForm({ ...editForm, image: '' })} className="text-xs text-red-500 mt-2 font-bold hover:underline">ลบรูปภาพนี้</button>}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="md:col-span-2">
+                <label className="text-xs font-bold text-gray-500 uppercase ml-1">ชื่อโครงการ</label>
+                <Input value={editForm.title || ''} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} placeholder="เช่น โครงการค่ายวิทยาศาสตร์ทางทะเล" className="mt-1 font-bold text-lg h-12 border-indigo-100 focus:border-indigo-500" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase ml-1">สถานะ</label>
+                <select 
+                  value={editForm.status || 'กำลังดำเนินการ'} 
+                  onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                  className="mt-1 flex h-12 w-full items-center justify-between rounded-md border border-indigo-100 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-indigo-700"
+                >
+                  <option value="กำลังดำเนินการ">กำลังดำเนินการ</option>
+                  <option value="เปิดรับสมัคร">เปิดรับสมัคร</option>
+                  <option value="เสร็จสิ้นแล้ว">เสร็จสิ้นแล้ว</option>
+                  <option value="โครงการประจำปี">โครงการประจำปี</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-gray-500 uppercase ml-1">รายละเอียดโครงการ</label>
+              <Textarea value={editForm.description || ''} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} rows={5} placeholder="พิมพ์รายละเอียด วัตถุประสงค์ หรือกำหนดการที่นี่..." className="mt-1 border-indigo-100 focus:border-indigo-500" />
+            </div>
+            
+            <Button onClick={handleSave} disabled={isUploading} className="w-full h-12 mt-4 text-lg shadow-md bg-indigo-600 hover:bg-indigo-700 text-white">
+              {isUploading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null} บันทึกข้อมูลโครงการ
             </Button>
           </div>
         </DialogContent>
