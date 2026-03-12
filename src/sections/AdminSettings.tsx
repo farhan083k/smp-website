@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { Settings, Image, Type, Save, Upload, Palette, Contact, ListOrdered, X, Loader2, Move } from 'lucide-react';
+import { Settings, Image, Type, Save, Upload, Palette, Contact, ListOrdered, Loader2, Move } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
