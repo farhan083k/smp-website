@@ -4,7 +4,6 @@ import { useSettings } from '../contexts/SettingsContext';
 export default function Footer() {
   const { settings } = useSettings();
 
-  // ฟังก์ชันช่วยเลื่อนหน้าจอไปยังส่วนต่างๆ
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
@@ -25,7 +24,7 @@ export default function Footer() {
               </div>
               <div>
                 <h3 className="text-lg font-bold leading-tight text-[#98D8C8]">{settings.programName}</h3>
-                <p className="text-xs text-gray-400">Science and Mathematics Program (SMP)</p>
+                <p className="text-xs text-gray-400">{settings.subtitle}</p>
               </div>
             </div>
             <p className="text-sm text-gray-300 leading-relaxed">
@@ -34,7 +33,7 @@ export default function Footer() {
               พร้อมพัฒนาศักยภาพให้ก้าวสู่ความเป็นเลิศทางวิชาการ
             </p>
             <div className="flex space-x-4 pt-2">
-              <a href="https://facebook.com" target="_blank" className="hover:text-[#98D8C8] transition-colors bg-white/10 p-2 rounded-full">
+              <a href={settings.facebookUrl || "https://facebook.com"} target="_blank" rel="noreferrer" className="hover:text-[#98D8C8] transition-colors bg-white/10 p-2 rounded-full">
                 <Facebook className="h-5 w-5" />
               </a>
               <a href="#" className="hover:text-[#98D8C8] transition-colors bg-white/10 p-2 rounded-full">
@@ -43,26 +42,26 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* ส่วนที่ 2: ข้อมูลติดต่อ (แก้ไขเบอร์โทรที่นี่) */}
+          {/* ส่วนที่ 2: ข้อมูลติดต่อ (ดึงจาก Settings) */}
           <div>
             <h3 className="text-xl font-bold mb-6 text-[#F7DC6F]">ติดต่อเรา</h3>
             <ul className="space-y-4 text-sm text-gray-300">
               <li className="flex items-start">
                 <MapPin className="h-5 w-5 mr-3 text-[#98D8C8] shrink-0" />
-                <span>โรงเรียนดารุสสาลาม ตันหยงมัส นราธิวาส<br />ต.ตันหยงมัส อ.ระแงะ จ.นราธิวาส 96110</span>
+                <span className="whitespace-pre-line">{settings.address || 'โรงเรียนดารุสสาลาม ตันหยงมัส นราธิวาส'}</span>
               </li>
               <li className="flex items-center">
                 <Phone className="h-5 w-5 mr-3 text-[#98D8C8] shrink-0" />
-                <span>073-671-xxx</span> {/* 👈 แก้เบอร์โทรที่นี่ครับ */}
+                <span>{settings.phone || '073-671-xxx'}</span>
               </li>
               <li className="flex items-center">
                 <Mail className="h-5 w-5 mr-3 text-[#98D8C8] shrink-0" />
-                <span>smp@darussalam.ac.th</span>
+                <span>{settings.email || 'smp@darussalam.ac.th'}</span>
               </li>
             </ul>
           </div>
 
-          {/* ส่วนที่ 3: ลิงก์ด่วน (กดแล้วเลื่อนหน้าจอได้จริง) */}
+          {/* ส่วนที่ 3: ลิงก์ด่วน */}
           <div>
             <h3 className="text-xl font-bold mb-6 text-[#F7DC6F]">ลิงก์ด่วน</h3>
             <ul className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
@@ -71,7 +70,6 @@ export default function Footer() {
               <li><button onClick={() => scrollToSection('projects')} className="text-gray-300 hover:text-white transition-colors flex items-center">○ โครงการ</button></li>
               <li><button onClick={() => scrollToSection('activities')} className="text-gray-300 hover:text-white transition-colors flex items-center">○ กิจกรรม</button></li>
               <li><button onClick={() => scrollToSection('staff')} className="text-gray-300 hover:text-white transition-colors flex items-center">○ บุคลากร</button></li>
-              <li><button onClick={() => scrollToSection('others')} className="text-gray-300 hover:text-white transition-colors flex items-center">○ อื่นๆ</button></li>
             </ul>
           </div>
 

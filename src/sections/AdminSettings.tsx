@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Settings, Image, Type, Save, Upload, Cloud, CloudOff, RefreshCw, Palette } from 'lucide-react';
+import { Settings, Image, Type, Save, Upload, Cloud, CloudOff, RefreshCw, Palette, Contact } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,7 +9,6 @@ import { useSettings } from '@/contexts/SettingsContext';
 interface AdminSettingsProps { isOpen: boolean; onClose: () => void; }
 
 export default function AdminSettings({ isOpen, onClose }: AdminSettingsProps) {
-  // ดึงฟังก์ชันอัปโหลดจาก Context โดยตรง เพื่อเลี่ยงปัญหา Import
   const { settings, updateSettings, isFirebaseReady, lastSync, uploadLogoFile, uploadBannerFile } = useSettings();
   
   const [formData, setFormData] = useState(settings);
@@ -88,7 +87,6 @@ export default function AdminSettings({ isOpen, onClose }: AdminSettingsProps) {
             </div>
           </div>
 
-          {/* 🎨 สีธีมเว็บไซต์ */}
           <div className="space-y-4 p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
             <h3 className="text-lg font-bold text-[#2C3E50] flex items-center">
               <Palette className="h-5 w-5 mr-2 text-[var(--primary)]" /> สีธีมเว็บไซต์
@@ -102,7 +100,6 @@ export default function AdminSettings({ isOpen, onClose }: AdminSettingsProps) {
             </div>
           </div>
 
-          {/* 🖼️ Logo Section */}
           <div className="space-y-4 p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
             <h3 className="text-lg font-bold text-[#2C3E50] flex items-center">
               <Image className="h-5 w-5 mr-2 text-[var(--primary)]" /> โลโก้ & แบนเนอร์
@@ -134,7 +131,6 @@ export default function AdminSettings({ isOpen, onClose }: AdminSettingsProps) {
             </Button>
           </div>
 
-          {/* 📝 Text Settings */}
           <div className="space-y-4 p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
             <h3 className="text-lg font-bold text-[#2C3E50] flex items-center">
               <Type className="h-5 w-5 mr-2 text-[var(--primary)]" /> ข้อมูลโรงเรียน
@@ -146,7 +142,6 @@ export default function AdminSettings({ isOpen, onClose }: AdminSettingsProps) {
             </div>
           </div>
 
-          {/* 📝 ข้อความหน้าแรก (Hero Section) */}
           <div className="space-y-4 p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
             <h3 className="text-lg font-bold text-[#2C3E50] flex items-center">
               <Type className="h-5 w-5 mr-2 text-[var(--primary)]" /> ข้อความหน้าแรก (Hero & Features)
@@ -177,7 +172,33 @@ export default function AdminSettings({ isOpen, onClose }: AdminSettingsProps) {
             </div>
           </div>
 
-          {/* Action Buttons */}
+          {/* 👇 ส่วนใหม่: ข้อมูลติดต่อ (Footer) */}
+          <div className="space-y-4 p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
+            <h3 className="text-lg font-bold text-[#2C3E50] flex items-center">
+              <Contact className="h-5 w-5 mr-2 text-[var(--primary)]" /> ข้อมูลติดต่อ (ส่วนท้ายเว็บ)
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-[#2C3E50]/60 uppercase ml-1">ที่อยู่โรงเรียน (ขึ้นบรรทัดใหม่ได้)</label>
+                <Textarea value={formData.address || ''} onChange={(e) => setFormData({ ...formData, address: e.target.value })} rows={2} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-[#2C3E50]/60 uppercase ml-1">เบอร์โทรศัพท์</label>
+                  <Input value={formData.phone || ''} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-[#2C3E50]/60 uppercase ml-1">อีเมล</label>
+                  <Input value={formData.email || ''} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-[#2C3E50]/60 uppercase ml-1">ลิงก์ Facebook (URL)</label>
+                <Input value={formData.facebookUrl || ''} onChange={(e) => setFormData({ ...formData, facebookUrl: e.target.value })} placeholder="เช่น https://facebook.com/darussalam" />
+              </div>
+            </div>
+          </div>
+
           <div className="flex space-x-3 pt-4 sticky bottom-0 bg-white/80 backdrop-blur-sm pb-2">
             <Button onClick={handleSave} className="flex-1 btn-primary h-12 text-lg" disabled={isUploading} style={{ backgroundColor: 'var(--primary)' }}>
               <Save className="h-5 w-5 mr-2" /> บันทึกข้อมูลทั้งหมด

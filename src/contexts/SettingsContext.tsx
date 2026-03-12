@@ -8,7 +8,6 @@ interface Settings {
   programName: string;
   subtitle: string;
   primaryColor: string;
-  // 👇 ตัวแปรใหม่สำหรับหน้าแรก
   heroTitle1: string;
   heroTitle2: string;
   feature1Title: string;
@@ -17,6 +16,11 @@ interface Settings {
   feature2Desc: string;
   feature3Title: string;
   feature3Desc: string;
+  // 👇 ข้อมูลติดต่อ
+  address: string;
+  phone: string;
+  email: string;
+  facebookUrl: string;
 }
 
 const defaultSettings: Settings = {
@@ -26,7 +30,6 @@ const defaultSettings: Settings = {
   programName: 'ห้องเรียนโปรแกรมวิทยาศาสตร์และคณิตศาสตร์',
   subtitle: 'Science and Mathematics Program (SMP)',
   primaryColor: '#3498DB',
-  // 👇 ค่าเริ่มต้นสำหรับหน้าแรก
   heroTitle1: 'ห้องเรียนโปรแกรม',
   heroTitle2: 'วิทยาศาสตร์และคณิตศาสตร์',
   feature1Title: 'วิทยาศาสตร์',
@@ -35,6 +38,11 @@ const defaultSettings: Settings = {
   feature2Desc: 'ฝึกฝนการคิดเชิงตรรกะและการแก้ปัญหาที่ซับซ้อนอย่างเป็นระบบ',
   feature3Title: 'ภาษาอังกฤษ',
   feature3Desc: 'เสริมสร้างทักษะการสื่อสารภาษาอังกฤษเพื่อก้าวสู่ระดับสากล',
+  // 👇 ค่าเริ่มต้นข้อมูลติดต่อ
+  address: 'โรงเรียนดารุสสาลาม ตันหยงมัส นราธิวาส\nต.ตันหยงมัส อ.ระแงะ จ.นราธิวาส 96110',
+  phone: '073-671-xxx',
+  email: 'smp@darussalam.ac.th',
+  facebookUrl: 'https://facebook.com',
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
