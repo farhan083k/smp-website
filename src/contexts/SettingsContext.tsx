@@ -16,11 +16,16 @@ interface Settings {
   feature2Desc: string;
   feature3Title: string;
   feature3Desc: string;
-  // 👇 ข้อมูลติดต่อ
   address: string;
   phone: string;
   email: string;
   facebookUrl: string;
+  // 👇 ตัวแปรใหม่สำหรับเก็บลำดับการแสดงผล
+  orderAnnouncements: number;
+  orderDocuments: number;
+  orderPrograms: number;
+  orderActivities: number;
+  orderStaff: number;
 }
 
 const defaultSettings: Settings = {
@@ -38,11 +43,16 @@ const defaultSettings: Settings = {
   feature2Desc: 'ฝึกฝนการคิดเชิงตรรกะและการแก้ปัญหาที่ซับซ้อนอย่างเป็นระบบ',
   feature3Title: 'ภาษาอังกฤษ',
   feature3Desc: 'เสริมสร้างทักษะการสื่อสารภาษาอังกฤษเพื่อก้าวสู่ระดับสากล',
-  // 👇 ค่าเริ่มต้นข้อมูลติดต่อ
   address: 'โรงเรียนดารุสสาลาม ตันหยงมัส นราธิวาส\nต.ตันหยงมัส อ.ระแงะ จ.นราธิวาส 96110',
   phone: '073-671-xxx',
   email: 'smp@darussalam.ac.th',
   facebookUrl: 'https://facebook.com',
+  // 👇 ค่าเริ่มต้นการจัดเรียง (1 ขึ้นก่อน)
+  orderAnnouncements: 1,
+  orderDocuments: 2,
+  orderPrograms: 3,
+  orderActivities: 4,
+  orderStaff: 5,
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);

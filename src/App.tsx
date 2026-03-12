@@ -4,14 +4,11 @@ import { auth } from './lib/firebase';
 import { SettingsProvider, useSettings } from './contexts/SettingsContext'; // 👈 นำเข้า useSettings
 import Header from './sections/Header';
 import Hero from './sections/Hero';
-import Programs from './sections/Programs';
 import Projects from './sections/Projects';
-import Activities from './sections/Activities';
-import Staff from './sections/Staff';
 import Others from './sections/Others';
 import Footer from './sections/Footer';
-import Announcements from './sections/Announcements';
-import Documents from './sections/Documents';
+import SectionRenderer from './sections/SectionRenderer';
+
 
 function AppContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -64,12 +61,9 @@ function AppContent() {
       <main>
         <Hero />
         {/* เราจะแทรกข่าวประชาสัมพันธ์ตรงนี้ครับ 👇 */}
-                <Announcements isLoggedIn={isLoggedIn} />
-        <Documents isLoggedIn={isLoggedIn} />
-        <Programs isLoggedIn={isLoggedIn} />
+        {/* 5 ระบบที่เราทำตั้งค่าจัดเรียงไว้ จะถูกดึงมาโชว์ตรงนี้ */}
+        <SectionRenderer isLoggedIn={isLoggedIn} />        
         <Projects isLoggedIn={isLoggedIn} />
-        <Activities isLoggedIn={isLoggedIn} />
-        <Staff isLoggedIn={isLoggedIn} />
         <Others isLoggedIn={isLoggedIn} />
       </main>
       
