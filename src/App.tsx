@@ -11,6 +11,7 @@ import Activities from './sections/Activities';
 import Staff from './sections/Staff';
 import Others from './sections/Others';
 import Footer from './sections/Footer';
+import Announcements from './sections/Announcements';
 
 function AppContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -62,6 +63,8 @@ function AppContent() {
       
       <main>
         <Hero />
+        {/* เราจะแทรกข่าวประชาสัมพันธ์ตรงนี้ครับ 👇 */}
+        <Announcements isLoggedIn={isLoggedIn} />
         <Announcements isLoggedIn={isLoggedIn} />
         <Programs isLoggedIn={isLoggedIn} />
         <Projects isLoggedIn={isLoggedIn} />

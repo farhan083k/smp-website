@@ -1,270 +1,132 @@
 import { useState, useEffect } from 'react';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
-import { db } from '../lib/firebase'; // 👈 เชื่อมสายไฟเข้า Firebase
-import { Megaphone, Calendar, Plus, Edit2, Trash2, X, Save } from 'lucide-react';
+import { db } from '../lib/firebase';
+import { Plus, Edit2, Trash2, Bell, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
-
-interface AnnouncementsProps {
-  isLoggedIn: boolean;
-}
-
-export default function Announcements({ isLoggedIn }: AnnouncementsProps) {
-  // เปลี่ยนมารับข้อมูลจาก Firebase เป็นหลัก
+export default function Announcements({ isLoggedIn }: { isLoggedIn: boolean }) {
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<Partial<any>>({});
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<any>({});
 
-  // 🔴 1. ฟังก์ชันดึงข้อมูลจาก Firebase แบบ Real-time
+  // ดึงข้อมูลข่าวจากฐานข้อมูล โดยเรียงจากวันที่ใหม่ล่าสุด (desc) ไปเก่าสุด
   useEffect(() => {
-    if (!db) return;
-    const q = query(collection(db, 'announcements'), orderBy('date', 'desc'));
+    const q = query(collection(db, 'announcements'), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setAnnouncements(fetchedData);
+      setAnnouncements(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
     return () => unsubscribe();
   }, []);
 
-  const handleAdd = () => {
-    setEditingId(null);
-    setEditForm({
-      title: '',
-      content: '',
-      date: new Date().toISOString().split('T')[0],
-    });
-    setIsEditing(true);
-  };
-
-  const handleEdit = (announcement: any) => {
-    setEditingId(announcement.id);
-    setEditForm({ ...announcement });
-    setIsEditing(true);
-  };
-
-  // 🔴 2. ฟังก์ชันบันทึกข้อมูลลง Firebase (ทั้งเพิ่มใหม่และแก้ไข)
   const handleSave = async () => {
-    if (!editForm.title || !editForm.content) return;
-
+    if (!editForm.title || !editForm.content) return alert("กรุณากรอกหัวข้อและเนื้อหาให้ครบถ้วน");
+    
     try {
       if (editingId) {
-        // กรณีแก้ไขของเดิม
-        const docRef = doc(db, 'announcements', editingId);
-        await updateDoc(docRef, {
-          title: editForm.title,
-          content: editForm.content,
-          date: editForm.date,
-        });
+        await updateDoc(doc(db, 'announcements', editingId), { ...editForm });
       } else {
-        // กรณีเพิ่มประกาศใหม่
-        await addDoc(collection(db, 'announcements'), {
-          title: editForm.title,
-          content: editForm.content,
-          date: editForm.date || new Date().toISOString().split('T')[0],
-          createdAt: new Date().toISOString()
+        await addDoc(collection(db, 'announcements'), { 
+          ...editForm, 
+          createdAt: new Date().toISOString() 
         });
       }
       setIsEditing(false);
-    } catch (error) {
-      console.error('Error saving announcement:', error);
-    }
+    } catch (error) { alert("บันทึกข้อมูลไม่สำเร็จ"); }
   };
 
-  // 🔴 3. ฟังก์ชันลบข้อมูลออกจาก Firebase
   const handleDelete = async (id: string) => {
-    try {
+    if (window.confirm("คุณต้องการลบประกาศนี้ใช่หรือไม่?")) {
       await deleteDoc(doc(db, 'announcements', id));
-      setDeleteConfirm(null);
-    } catch (error) {
-      console.error('Error deleting announcement:', error);
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('th-TH', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+  const openAddDialog = () => {
+    setEditingId(null);
+    setEditForm({ title: '', content: '' });
+    setIsEditing(true);
+  };
+
+  const openEditDialog = (item: any) => {
+    setEditingId(item.id);
+    setEditForm(item);
+    setIsEditing(true);
+  };
+
+  // ตัวช่วยแปลงวันที่ให้เป็นภาษาไทยแบบสวยงาม
+  const formatDate = (isoString: string) => {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    return date.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
   return (
-    <section id="announcements" className="py-16 relative">
+    <section id="announcements" className="py-16 bg-gray-50/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center">
-            <div className="bg-[#98D8C8]/30 p-3 rounded-full border-2 border-[#3498DB] mr-4">
-              <Megaphone className="h-6 w-6 text-[#3498DB]" />
-            </div>
-            <div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-[#2C3E50]">
-                ประกาศ
-              </h2>
-              <p className="text-[#2C3E50]/70">ข่าวสารและประกาศสำคัญ</p>
-            </div>
-          </div>
+        
+        {/* หัวข้อส่วนข่าวประชาสัมพันธ์ */}
+        <div className="flex justify-between items-center mb-10 border-b pb-4">
+          <h2 className="text-3xl font-bold text-[#2C3E50] flex items-center">
+            <Bell className="mr-3 h-8 w-8 text-[var(--primary)]" />
+            ข่าวประชาสัมพันธ์
+          </h2>
           {isLoggedIn && (
-            <Button onClick={handleAdd} className="btn-primary">
-              <Plus className="h-4 w-4 mr-2" />
-              เพิ่มประกาศ
+            <Button onClick={openAddDialog} className="btn-primary shadow-md" style={{ backgroundColor: 'var(--primary)' }}>
+              <Plus className="mr-2 h-4 w-4" /> เพิ่มประกาศ
             </Button>
           )}
         </div>
 
-        {/* Announcements List */}
-        <div className="space-y-4">
-          {announcements.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              ยังไม่มีประกาศในขณะนี้
-            </div>
-          ) : (
-            announcements.map((announcement) => (
-              <div
-                key={announcement.id}
-                className="mint-card p-6 relative group animate-fade-in"
-              >
+        {/* รายการข่าว (ถ้ามีข่าว จะแสดงเป็นกล่องๆ) */}
+        {announcements.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {announcements.map((item) => (
+              <div key={item.id} className="bg-white rounded-xl p-6 shadow-sm border-l-4 hover:shadow-md transition-shadow relative group" style={{ borderLeftColor: 'var(--primary)' }}>
+                
+                <div className="flex items-center text-sm text-gray-500 mb-3 bg-gray-50 w-fit px-3 py-1 rounded-full">
+                  <Calendar className="h-4 w-4 mr-2 text-[var(--primary)]" />
+                  {formatDate(item.createdAt)}
+                </div>
+                
+                <h3 className="text-xl font-bold text-[#2C3E50] mb-2">{item.title}</h3>
+                <p className="text-gray-600 whitespace-pre-line leading-relaxed text-sm">{item.content}</p>
+
                 {isLoggedIn && (
                   <div className="absolute top-4 right-4 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => handleEdit(announcement)}
-                      className="p-2 bg-[#98D8C8]/50 rounded-lg hover:bg-[#98D8C8] transition-colors"
-                    >
-                      <Edit2 className="h-4 w-4 text-[#2C3E50]" />
-                    </button>
-                    <button
-                      onClick={() => setDeleteConfirm(announcement.id)}
-                      className="p-2 bg-red-100 rounded-lg hover:bg-red-200 transition-colors"
-                    >
-                      <Trash2 className="h-4 w-4 text-red-600" />
-                    </button>
+                    <button onClick={() => openEditDialog(item)} className="p-2 bg-gray-100 text-blue-600 rounded-full hover:bg-blue-100 shadow-sm"><Edit2 className="h-4 w-4" /></button>
+                    <button onClick={() => handleDelete(item.id)} className="p-2 bg-gray-100 text-red-500 rounded-full hover:bg-red-100 shadow-sm"><Trash2 className="h-4 w-4" /></button>
                   </div>
                 )}
-                
-                <div className="flex items-start space-x-4">
-                  <div className="flex-shrink-0">
-                    <div className="bg-[#F7DC6F]/40 px-3 py-2 rounded-lg border border-[#3498DB]/30 text-center">
-                      <Calendar className="h-5 w-5 text-[#3498DB] mx-auto mb-1" />
-                      <span className="text-xs font-medium text-[#2C3E50]">
-                        {formatDate(announcement.date)}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-bold text-[#2C3E50] mb-2">
-                      {announcement.title}
-                    </h3>
-                    <p className="text-[#2C3E50]/80 leading-relaxed whitespace-pre-line">
-                      {announcement.content}
-                    </p>
-                  </div>
-                </div>
               </div>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        ) : (
+          /* ถ้าไม่มีข่าว จะแสดงข้อความนี้ */
+          <div className="text-center py-12 text-gray-500 bg-white rounded-2xl border-2 border-dashed border-gray-200">
+            <Bell className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+            <p>ยังไม่มีข่าวประชาสัมพันธ์ในขณะนี้</p>
+          </div>
+        )}
       </div>
 
-      {/* Edit Dialog */}
+      {/* 📝 หน้าต่าง Pop-up สำหรับเพิ่ม/แก้ไขข่าว */}
       <Dialog open={isEditing} onOpenChange={setIsEditing}>
-        <DialogContent className="sm:max-w-lg admin-panel">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-[#2C3E50]">
-              {editingId ? 'แก้ไขประกาศ' : 'เพิ่มประกาศ'}
-            </DialogTitle>
-          </DialogHeader>
+        <DialogContent className="sm:max-w-md admin-panel border-none shadow-2xl">
+          <DialogHeader><DialogTitle className="text-xl font-bold">{editingId ? 'แก้ไขประกาศ' : 'เพิ่มประกาศใหม่'}</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-4">
             <div>
-              <label className="block text-sm font-medium text-[#2C3E50] mb-2">
-                หัวข้อ
-              </label>
-              <Input
-                value={editForm.title || ''}
-                onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                placeholder="หัวข้อประกาศ"
-                className="border-[#3498DB]"
-              />
+              <label className="text-xs font-bold text-gray-500 uppercase ml-1">หัวข้อประกาศ</label>
+              <Input value={editForm.title || ''} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} placeholder="เช่น รับสมัครนักเรียนใหม่ ปีการศึกษา 2569" className="mt-1" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#2C3E50] mb-2">
-                เนื้อหา
-              </label>
-              <Textarea
-                value={editForm.content || ''}
-                onChange={(e) => setEditForm({ ...editForm, content: e.target.value })}
-                placeholder="เนื้อหาประกาศ"
-                rows={5}
-                className="border-[#3498DB]"
-              />
+              <label className="text-xs font-bold text-gray-500 uppercase ml-1">เนื้อหาประกาศ (เว้นวรรค/ขึ้นบรรทัดใหม่ได้)</label>
+              <Textarea value={editForm.content || ''} onChange={(e) => setEditForm({ ...editForm, content: e.target.value })} rows={5} placeholder="พิมพ์รายละเอียดที่นี่..." className="mt-1" />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-[#2C3E50] mb-2">
-                วันที่
-              </label>
-              <Input
-                type="date"
-                value={editForm.date || ''}
-                onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
-                className="border-[#3498DB]"
-              />
-            </div>
-            <div className="flex space-x-3 pt-2">
-              <Button onClick={handleSave} className="flex-1 btn-primary">
-                <Save className="h-4 w-4 mr-2" />
-                บันทึก
-              </Button>
-              <Button
-                onClick={() => setIsEditing(false)}
-                variant="outline"
-                className="flex-1 border-[#3498DB]"
-              >
-                <X className="h-4 w-4 mr-2" />
-                ยกเลิก
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation */}
-      <Dialog open={deleteConfirm !== null} onOpenChange={() => setDeleteConfirm(null)}>
-        <DialogContent className="sm:max-w-md admin-panel">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-[#2C3E50]">
-              ยืนยันการลบ
-            </DialogTitle>
-          </DialogHeader>
-          <p className="text-[#2C3E50]/80 py-4">
-            คุณต้องการลบประกาศนี้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้
-          </p>
-          <div className="flex space-x-3">
-            <Button
-              onClick={() => deleteConfirm && handleDelete(deleteConfirm)}
-              className="flex-1 bg-red-500 hover:bg-red-600 text-white"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              ลบ
-            </Button>
-            <Button
-              onClick={() => setDeleteConfirm(null)}
-              variant="outline"
-              className="flex-1 border-[#3498DB]"
-            >
-              ยกเลิก
+            <Button onClick={handleSave} className="w-full h-12 mt-4 text-lg shadow-md" style={{ backgroundColor: 'var(--primary)' }}>
+              บันทึกประกาศ
             </Button>
           </div>
         </DialogContent>
