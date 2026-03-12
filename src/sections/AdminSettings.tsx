@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'; // 👈 นำเข้าตัวอัปโหลด
-import { Settings, Image, Type, Save, Upload, Cloud, CloudOff, Palette, Contact, ListOrdered, X, Loader2 } from 'lucide-react';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { Settings, Image, Type, Save, Upload, Palette, Contact, ListOrdered, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,7 +10,8 @@ import { useSettings } from '@/contexts/SettingsContext';
 interface AdminSettingsProps { isOpen: boolean; onClose: () => void; }
 
 export default function AdminSettings({ isOpen, onClose }: AdminSettingsProps) {
-  const { settings, updateSettings, isFirebaseReady, uploadLogoFile, uploadBannerFile } = useSettings();
+  // 👇 เอา isFirebaseReady ออกไปแล้วครับ
+  const { settings, updateSettings, uploadLogoFile, uploadBannerFile } = useSettings();
   
   const [formData, setFormData] = useState(settings);
   const [isUploading, setIsUploading] = useState(false);
@@ -45,7 +46,6 @@ export default function AdminSettings({ isOpen, onClose }: AdminSettingsProps) {
     finally { setIsUploading(false); }
   };
 
-  // 👇 ฟังก์ชันอัปโหลดรูปภาพเฉพาะของส่วนจุดเด่น (Features)
   const handleFeatureUpload = async (feature: string, type: 'Icon' | 'Bg', e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -113,6 +113,15 @@ export default function AdminSettings({ isOpen, onClose }: AdminSettingsProps) {
           </div>
 
           <div className="space-y-4 p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
+            <h3 className="text-lg font-bold text-[#2C3E50] flex items-center"><Type className="h-5 w-5 mr-2 text-[var(--primary)]" /> ข้อมูลโรงเรียน</h3>
+            <div className="space-y-4">
+              <div><label className="text-xs font-bold text-[#2C3E50]/60 uppercase ml-1">ชื่อโปรแกรม</label><Input value={formData.programName || ''} onChange={(e) => setFormData({ ...formData, programName: e.target.value })} /></div>
+              <div><label className="text-xs font-bold text-[#2C3E50]/60 uppercase ml-1">ชื่อโรงเรียน</label><Input value={formData.schoolName || ''} onChange={(e) => setFormData({ ...formData, schoolName: e.target.value })} /></div>
+              <div><label className="text-xs font-bold text-[#2C3E50]/60 uppercase ml-1">คำอธิบายเพิ่มเติม</label><Textarea value={formData.subtitle || ''} onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })} rows={3} /></div>
+            </div>
+          </div>
+
+          <div className="space-y-4 p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
             <h3 className="text-lg font-bold text-[#2C3E50] flex items-center"><Type className="h-5 w-5 mr-2 text-[var(--primary)]" /> ข้อความหน้าแรก (Hero & Features)</h3>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -120,10 +129,8 @@ export default function AdminSettings({ isOpen, onClose }: AdminSettingsProps) {
                 <div><label className="text-xs font-bold text-[#2C3E50]/60 uppercase ml-1">หัวข้อบรรทัดที่สอง (สีเด่น)</label><Input value={formData.heroTitle2 || ''} onChange={(e) => setFormData({ ...formData, heroTitle2: e.target.value })} /></div>
               </div>
               
-              {/* 👇 เพิ่มช่องอัปโหลดไอคอนและพื้นหลัง */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 
-                {/* จุดเด่น 1 */}
                 <div className="p-4 bg-gray-50 rounded-xl space-y-3 border border-gray-200">
                   <p className="text-sm font-bold text-[#2C3E50] border-b pb-2">จุดเด่นที่ 1 (ซ้าย)</p>
                   <div className="flex justify-between items-center text-xs bg-white p-2 rounded border"><span className="text-gray-500 font-bold">ไอคอน:</span><div className="flex items-center gap-2">{formData.feature1Icon ? <img src={formData.feature1Icon} className="w-6 h-6 rounded-full object-cover"/> : <span className="text-gray-300">ไม่มี</span>}<Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[10px] bg-blue-50 text-blue-600" onClick={() => document.getElementById('f1-icon')?.click()}>อัปโหลด</Button>{formData.feature1Icon && <button onClick={()=>setFormData({...formData, feature1Icon: ''})}><X className="w-3 h-3 text-red-500"/></button>}</div><input type="file" id="f1-icon" className="hidden" accept="image/*" onChange={(e) => handleFeatureUpload('feature1', 'Icon', e)} /></div>
@@ -132,7 +139,6 @@ export default function AdminSettings({ isOpen, onClose }: AdminSettingsProps) {
                   <Textarea placeholder="คำอธิบาย" rows={3} value={formData.feature1Desc || ''} onChange={(e) => setFormData({ ...formData, feature1Desc: e.target.value })} />
                 </div>
 
-                {/* จุดเด่น 2 */}
                 <div className="p-4 bg-gray-50 rounded-xl space-y-3 border border-gray-200">
                   <p className="text-sm font-bold text-[#2C3E50] border-b pb-2">จุดเด่นที่ 2 (กลาง)</p>
                   <div className="flex justify-between items-center text-xs bg-white p-2 rounded border"><span className="text-gray-500 font-bold">ไอคอน:</span><div className="flex items-center gap-2">{formData.feature2Icon ? <img src={formData.feature2Icon} className="w-6 h-6 rounded-full object-cover"/> : <span className="text-gray-300">ไม่มี</span>}<Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[10px] bg-red-50 text-red-600" onClick={() => document.getElementById('f2-icon')?.click()}>อัปโหลด</Button>{formData.feature2Icon && <button onClick={()=>setFormData({...formData, feature2Icon: ''})}><X className="w-3 h-3 text-red-500"/></button>}</div><input type="file" id="f2-icon" className="hidden" accept="image/*" onChange={(e) => handleFeatureUpload('feature2', 'Icon', e)} /></div>
@@ -141,7 +147,6 @@ export default function AdminSettings({ isOpen, onClose }: AdminSettingsProps) {
                   <Textarea placeholder="คำอธิบาย" rows={3} value={formData.feature2Desc || ''} onChange={(e) => setFormData({ ...formData, feature2Desc: e.target.value })} />
                 </div>
 
-                {/* จุดเด่น 3 */}
                 <div className="p-4 bg-gray-50 rounded-xl space-y-3 border border-gray-200">
                   <p className="text-sm font-bold text-[#2C3E50] border-b pb-2">จุดเด่นที่ 3 (ขวา)</p>
                   <div className="flex justify-between items-center text-xs bg-white p-2 rounded border"><span className="text-gray-500 font-bold">ไอคอน:</span><div className="flex items-center gap-2">{formData.feature3Icon ? <img src={formData.feature3Icon} className="w-6 h-6 rounded-full object-cover"/> : <span className="text-gray-300">ไม่มี</span>}<Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[10px] bg-green-50 text-green-600" onClick={() => document.getElementById('f3-icon')?.click()}>อัปโหลด</Button>{formData.feature3Icon && <button onClick={()=>setFormData({...formData, feature3Icon: ''})}><X className="w-3 h-3 text-red-500"/></button>}</div><input type="file" id="f3-icon" className="hidden" accept="image/*" onChange={(e) => handleFeatureUpload('feature3', 'Icon', e)} /></div>
