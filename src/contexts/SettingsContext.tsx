@@ -16,11 +16,18 @@ interface Settings {
   feature2Desc: string;
   feature3Title: string;
   feature3Desc: string;
+  // 👇 ตัวแปรใหม่: เก็บไอคอนและพื้นหลังของจุดเด่นทั้ง 3
+  feature1Icon: string;
+  feature2Icon: string;
+  feature3Icon: string;
+  feature1Bg: string;
+  feature2Bg: string;
+  feature3Bg: string;
+  
   address: string;
   phone: string;
   email: string;
   facebookUrl: string;
-  // 👇 ตัวแปรเก็บลำดับทั้ง 7 ส่วน
   orderAnnouncements: number;
   orderDocuments: number;
   orderPrograms: number;
@@ -45,18 +52,15 @@ const defaultSettings: Settings = {
   feature2Desc: 'ฝึกฝนการคิดเชิงตรรกะและการแก้ปัญหาที่ซับซ้อนอย่างเป็นระบบ',
   feature3Title: 'ภาษาอังกฤษ',
   feature3Desc: 'เสริมสร้างทักษะการสื่อสารภาษาอังกฤษเพื่อก้าวสู่ระดับสากล',
+  // 👇 ค่าเริ่มต้น (ยังไม่มีรูป)
+  feature1Icon: '', feature2Icon: '', feature3Icon: '',
+  feature1Bg: '', feature2Bg: '', feature3Bg: '',
+  
   address: 'โรงเรียนดารุสสาลาม ตันหยงมัส นราธิวาส\nต.ตันหยงมัส อ.ระแงะ จ.นราธิวาส 96110',
   phone: '073-671-xxx',
   email: 'smp@darussalam.ac.th',
   facebookUrl: 'https://facebook.com',
-  // 👇 ค่าเริ่มต้นการจัดเรียงทั้ง 7 ส่วน
-  orderAnnouncements: 1,
-  orderPrograms: 2,
-  orderActivities: 3,
-  orderStaff: 4,
-  orderDocuments: 5,
-  orderProjects: 6,
-  orderOthers: 7,
+  orderAnnouncements: 1, orderPrograms: 2, orderActivities: 3, orderStaff: 4, orderDocuments: 5, orderProjects: 6, orderOthers: 7,
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
