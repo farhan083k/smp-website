@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Settings, Image, Type, Save, Upload, Cloud, CloudOff, RefreshCw, Loader2, Palette } from 'lucide-react';
+import { Settings, Image, Type, Save, Upload, Cloud, CloudOff, RefreshCw, Palette } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
