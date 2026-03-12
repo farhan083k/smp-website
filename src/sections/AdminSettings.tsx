@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Settings, Image, Type, Save, Upload, Cloud, CloudOff, RefreshCw, Palette, Contact, ListOrdered } from 'lucide-react';
+import { Settings, Image, Type, Save, Upload, Cloud, CloudOff, Palette, Contact, ListOrdered } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,9 +9,8 @@ import { useSettings } from '@/contexts/SettingsContext';
 interface AdminSettingsProps { isOpen: boolean; onClose: () => void; }
 
 export default function AdminSettings({ isOpen, onClose }: AdminSettingsProps) {
-  const { settings, updateSettings, isFirebaseReady, lastSync, uploadLogoFile, uploadBannerFile } = useSettings();
+  const { settings, updateSettings, isFirebaseReady, uploadLogoFile, uploadBannerFile } = useSettings();
   
-  // 👇 ตัวแปร formData ที่แจ้ง Error คราวก่อน อยู่ตรงนี้ครับ!
   const [formData, setFormData] = useState(settings);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string>('');
@@ -44,8 +43,6 @@ export default function AdminSettings({ isOpen, onClose }: AdminSettingsProps) {
     } catch (error) { setUploadProgress('เกิดข้อผิดพลาดในการอัปโหลด'); } 
     finally { setIsUploading(false); }
   };
-
-  const formatLastSync = () => lastSync ? lastSync.toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }) : 'ยังไม่เคยซิงค์';
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
