@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
 import { db, uploadStaffImage } from '../lib/firebase';
-import { Mail, Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader2, Upload, UserCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -14,106 +14,178 @@ export default function Staff({ isLoggedIn }: { isLoggedIn: boolean }) {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ดึงข้อมูลบุคลากรจากฐานข้อมูล และเรียงตามลำดับ (order)
   useEffect(() => {
     const q = query(collection(db, 'staff'), orderBy('order', 'asc'));
-    return onSnapshot(q, (snapshot) => {
+    const unsubscribe = onSnapshot(q, (snapshot) => {
       setStaff(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
+    return () => unsubscribe();
   }, []);
 
-  const handleSave = async () => {
-    const data = { 
-      ...editForm, 
-      order: Number(editForm.order) || 99, 
-      posX: Number(editForm.posX) || 50, 
-      posY: Number(editForm.posY) || 50 
-    };
-    if (editingId) {
-      await updateDoc(doc(db, 'staff', editingId), data);
-    } else {
-      await addDoc(collection(db, 'staff'), data);
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    try {
+      const url = await uploadStaffImage(file); // ใช้ระบบย่อรูปที่เราทำไว้
+      setEditForm({ ...editForm, image: url });
+    } catch (error) {
+      alert("อัปโหลดรูปภาพไม่สำเร็จ");
+    } finally {
+      setIsUploading(false);
     }
-    setIsEditing(false);
+  };
+
+  const handleSave = async () => {
+    if (!editForm.name || !editForm.position) {
+      alert("กรุณากรอกชื่อและตำแหน่งให้ครบถ้วน");
+      return;
+    }
+
+    const staffData = {
+      name: editForm.name,
+      position: editForm.position,
+      image: editForm.image || '',
+      order: editForm.order || 99, // ถ้าไม่ใส่เลขเรียงลำดับ ให้ไปอยู่ท้ายๆ
+    };
+
+    try {
+      if (editingId) {
+        await updateDoc(doc(db, 'staff', editingId), staffData);
+      } else {
+        await addDoc(collection(db, 'staff'), { ...staffData, createdAt: new Date().toISOString() });
+      }
+      setIsEditing(false);
+    } catch (error) {
+      alert("บันทึกข้อมูลไม่สำเร็จ");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm("คุณต้องการลบข้อมูลบุคลากรท่านนี้ใช่หรือไม่?")) {
+      await deleteDoc(doc(db, 'staff', id));
+    }
+  };
+
+  const openAddDialog = () => {
+    setEditingId(null);
+    setEditForm({ name: '', position: '', image: '', order: 99 });
+    setIsEditing(true);
+  };
+
+  const openEditDialog = (person: any) => {
+    setEditingId(person.id);
+    setEditForm(person);
+    setIsEditing(true);
   };
 
   return (
     <section id="staff" className="py-16 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-3xl font-bold">คณะครู SMP</h2>
-          {isLoggedIn && <Button onClick={() => { setEditingId(null); setEditForm({ posX: 50, posY: 50 }); setIsEditing(true); }} className="btn-primary"><Plus className="mr-2 h-4 w-4" /> เพิ่มครู</Button>}
+        <div className="flex justify-between items-center mb-12 border-b pb-4">
+          <h2 className="text-3xl font-bold text-[#2C3E50]">บุคลากร SMP</h2>
+          
+          {/* ปุ่มเพิ่มบุคลากร จะโชว์เฉพาะตอนแอดมินล็อกอิน */}
+          {isLoggedIn && (
+            <Button onClick={openAddDialog} className="btn-primary" style={{ backgroundColor: 'var(--primary)' }}>
+              <Plus className="mr-2 h-4 w-4" /> เพิ่มบุคลากร
+            </Button>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {staff.map((member) => (
-            <div key={member.id} className="mint-card overflow-hidden group border-[#3498DB]/10">
-              <div className="relative h-80 overflow-hidden bg-gray-100">
-                <img
-                  src={member.image || 'https://via.placeholder.com/300x300'}
-                  style={{ objectPosition: `${member.posX || 50}% ${member.posY || 50}%` }}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  alt={member.name}
-                />
+        {staff.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+            {staff.map((person) => (
+              <div key={person.id} className="bg-gray-50 rounded-2xl p-6 text-center shadow-sm border border-gray-100 relative group hover:shadow-md transition-shadow">
+                
+                {/* รูปโปรไฟล์ */}
+                <div className="w-32 h-32 mx-auto rounded-full overflow-hidden mb-4 border-4 border-white shadow-md bg-gray-200">
+                  {person.image ? (
+                    <img src={person.image} alt={person.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
+                      <UserCircle className="w-16 h-16" />
+                    </div>
+                  )}
+                </div>
+                
+                {/* ข้อมูล */}
+                <h3 className="text-lg font-bold text-[#2C3E50]">{person.name}</h3>
+                <p className="text-sm text-[#3498DB] font-medium mt-1">{person.position}</p>
+
+                {/* ปุ่มแก้ไข/ลบ จะโชว์เฉพาะตอนแอดมินล็อกอิน และเอาเมาส์ไปชี้ที่การ์ด */}
                 {isLoggedIn && (
-                  <div className="absolute top-3 right-3 flex space-x-2">
-                    <button onClick={() => { setEditingId(member.id); setEditForm(member); setIsEditing(true); }} className="p-2 bg-white rounded-full shadow-md"><Edit2 className="h-4 w-4" /></button>
-                    <button onClick={() => deleteDoc(doc(db, 'staff', member.id))} className="p-2 bg-white rounded-full shadow-md text-red-500"><Trash2 className="h-4 w-4" /></button>
+                  <div className="absolute top-4 right-4 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => openEditDialog(person)} className="p-2 bg-white text-blue-600 rounded-full shadow hover:bg-blue-50">
+                      <Edit2 className="h-4 w-4" />
+                    </button>
+                    <button onClick={() => handleDelete(person.id)} className="p-2 bg-white text-red-500 rounded-full shadow hover:bg-red-50">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
                 )}
               </div>
-              <div className="p-6">
-                <h3 className="text-xl font-bold">{member.name}</h3>
-                <p className="text-[#3498DB] text-sm font-bold mb-4">{member.position}</p>
-                {member.email && <div className="flex items-center text-sm text-gray-500"><Mail className="h-4 w-4 mr-2" />{member.email}</div>}
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-16 text-gray-500 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+            <UserCircle className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+            <p>ยังไม่มีข้อมูลบุคลากร</p>
+            {isLoggedIn && <p className="text-sm mt-2">คลิกปุ่ม "เพิ่มบุคลากร" ด้านบนเพื่อเริ่มต้น</p>}
+          </div>
+        )}
       </div>
 
+      {/* 📝 หน้าต่าง Pop-up สำหรับเพิ่ม/แก้ไข */}
       <Dialog open={isEditing} onOpenChange={setIsEditing}>
-        <DialogContent className="sm:max-w-md admin-panel">
-          <DialogHeader><DialogTitle>{editingId ? 'แก้ไขข้อมูลครู' : 'เพิ่มข้อมูลครู'}</DialogTitle></DialogHeader>
+        <DialogContent className="sm:max-w-md admin-panel border-none shadow-2xl">
+          <DialogHeader>
+            <DialogTitle>{editingId ? 'แก้ไขข้อมูลบุคลากร' : 'เพิ่มบุคลากรใหม่'}</DialogTitle>
+          </DialogHeader>
           <div className="space-y-4 pt-4">
-            <div className="flex flex-col items-center">
-              <div className="h-32 w-32 rounded-full overflow-hidden border-4 border-[#98D8C8] shadow-lg relative bg-gray-200">
-                <img 
-                  src={editForm.image || ''} 
-                  style={{ objectPosition: `${editForm.posX || 50}% ${editForm.posY || 50}%` }}
-                  className="w-full h-full object-cover" 
-                  alt=""
-                />
-                {isUploading && <div className="absolute inset-0 bg-white/70 flex items-center justify-center"><Loader2 className="animate-spin" /></div>}
+            
+            {/* อัปโหลดรูป */}
+            <div className="flex flex-col items-center justify-center mb-6">
+              <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-gray-100 mb-4 bg-gray-50 relative group">
+                {editForm.image ? (
+                  <img src={editForm.image} alt="Preview" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-400">
+                    <UserCircle className="w-12 h-12" />
+                  </div>
+                )}
+                <div 
+                  className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {isUploading ? <Loader2 className="w-8 h-8 text-white animate-spin" /> : <Upload className="w-8 h-8 text-white" />}
+                </div>
               </div>
-              <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="mt-4" disabled={isUploading}>อัปโหลดรูปโปรไฟล์</Button>
-              <input type="file" ref={fileInputRef} onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                setIsUploading(true);
-                const url = await uploadStaffImage(file);
-                setEditForm({...editForm, image: url});
-                setIsUploading(false);
-              }} className="hidden" accept="image/*" />
+              <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" />
+              <p className="text-xs text-gray-500">คลิกที่รูปด้านบนเพื่ออัปโหลด/เปลี่ยนรูปภาพ</p>
+            </div>
+            
+            {/* ฟอร์มกรอกข้อมูล */}
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-gray-500">ชื่อ-นามสกุล (พร้อมคำนำหน้า)</label>
+                <Input value={editForm.name || ''} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} placeholder="เช่น นายสมชาย ใจดี" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-500">ตำแหน่ง / วิชาที่สอน</label>
+                <Input value={editForm.position || ''} onChange={(e) => setEditForm({ ...editForm, position: e.target.value })} placeholder="เช่น ครูสอนวิชาคณิตศาสตร์" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-500">ลำดับการแสดงผล (เลขน้อยขึ้นก่อน)</label>
+                <Input type="number" value={editForm.order || 99} onChange={(e) => setEditForm({ ...editForm, order: Number(e.target.value) })} placeholder="เช่น 1 = ผอ., 2 = หัวหน้าโครงการ..." />
+              </div>
             </div>
 
-            {/* ✅ ส่วนปรับตำแหน่งภาพ */}
-            <div className="p-4 bg-blue-50 rounded-xl space-y-4 border border-blue-100">
-              <p className="text-[10px] font-bold text-blue-500 uppercase">ปรับตำแหน่งใบหน้า (จมูกควรอยู่กึ่งกลาง)</p>
-              <div className="space-y-1">
-                <span className="text-[10px] text-gray-400">ซ้าย-ขวา</span>
-                <input type="range" min="0" max="100" value={editForm.posX || 50} onChange={(e) => setEditForm({...editForm, posX: e.target.value})} className="w-full" />
-              </div>
-              <div className="space-y-1">
-                <span className="text-[10px] text-gray-400">บน-ล่าง</span>
-                <input type="range" min="0" max="100" value={editForm.posY || 50} onChange={(e) => setEditForm({...editForm, posY: e.target.value})} className="w-full" />
-              </div>
-            </div>
-
-            <Input value={editForm.name || ''} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} placeholder="ชื่อ-นามสกุล" />
-            <Input value={editForm.position || ''} onChange={(e) => setEditForm({ ...editForm, position: e.target.value })} placeholder="ตำแหน่ง" />
-            <Input value={editForm.email || ''} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} placeholder="อีเมล" />
-            <Input type="number" value={editForm.order || ''} onChange={(e) => setEditForm({ ...editForm, order: e.target.value })} placeholder="ลำดับการแสดงผล" />
-            <Button onClick={handleSave} className="w-full btn-primary" disabled={isUploading}>บันทึกข้อมูล</Button>
+            <Button onClick={handleSave} className="w-full h-12 mt-4" disabled={isUploading} style={{ backgroundColor: 'var(--primary)' }}>
+              {isUploading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
+              บันทึกข้อมูลบุคลากร
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
