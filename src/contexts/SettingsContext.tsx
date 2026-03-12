@@ -20,12 +20,14 @@ interface Settings {
   phone: string;
   email: string;
   facebookUrl: string;
-  // 👇 ตัวแปรใหม่สำหรับเก็บลำดับการแสดงผล
+  // 👇 ตัวแปรเก็บลำดับทั้ง 7 ส่วน
   orderAnnouncements: number;
   orderDocuments: number;
   orderPrograms: number;
   orderActivities: number;
   orderStaff: number;
+  orderProjects: number;
+  orderOthers: number;
 }
 
 const defaultSettings: Settings = {
@@ -47,12 +49,14 @@ const defaultSettings: Settings = {
   phone: '073-671-xxx',
   email: 'smp@darussalam.ac.th',
   facebookUrl: 'https://facebook.com',
-  // 👇 ค่าเริ่มต้นการจัดเรียง (1 ขึ้นก่อน)
+  // 👇 ค่าเริ่มต้นการจัดเรียงทั้ง 7 ส่วน
   orderAnnouncements: 1,
-  orderDocuments: 2,
-  orderPrograms: 3,
-  orderActivities: 4,
-  orderStaff: 5,
+  orderPrograms: 2,
+  orderActivities: 3,
+  orderStaff: 4,
+  orderDocuments: 5,
+  orderProjects: 6,
+  orderOthers: 7,
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);

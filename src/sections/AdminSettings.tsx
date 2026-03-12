@@ -23,7 +23,7 @@ export default function AdminSettings({ isOpen, onClose }: AdminSettingsProps) {
   const handleSave = async () => {
     try {
       await updateSettings(formData);
-      alert('บันทึกการตั้งค่าเรียบร้อยแล้ว');
+      alert('บันเรียบร้อยแล้ว');
       onClose();
     } catch (error) { alert('เกิดข้อผิดพลาดในการบันทึก'); }
   };
@@ -63,12 +63,15 @@ export default function AdminSettings({ isOpen, onClose }: AdminSettingsProps) {
               <ListOrdered className="h-5 w-5 mr-2 text-blue-600" /> จัดเรียงลำดับส่วนต่างๆ บนหน้าเว็บ
             </h3>
             <p className="text-xs text-gray-500 mb-2">ใส่ตัวเลขเพื่อเรียงลำดับ (ตัวเลขน้อยจะแสดงอยู่ด้านบนสุด)</p>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            {/* 👇 เพิ่มช่องเป็น 7 ช่องแล้วครับ */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="bg-white p-2 rounded-lg border shadow-sm"><label className="text-[10px] font-bold text-gray-500 uppercase">ข่าวประชาสัมพันธ์</label><Input type="number" value={formData.orderAnnouncements || 1} onChange={(e) => setFormData({ ...formData, orderAnnouncements: Number(e.target.value) })} className="h-8 text-center font-bold text-blue-600" /></div>
-              <div className="bg-white p-2 rounded-lg border shadow-sm"><label className="text-[10px] font-bold text-gray-500 uppercase">เอกสารดาวน์โหลด</label><Input type="number" value={formData.orderDocuments || 2} onChange={(e) => setFormData({ ...formData, orderDocuments: Number(e.target.value) })} className="h-8 text-center font-bold text-blue-600" /></div>
-              <div className="bg-white p-2 rounded-lg border shadow-sm"><label className="text-[10px] font-bold text-gray-500 uppercase">แนะนำโปรแกรม</label><Input type="number" value={formData.orderPrograms || 3} onChange={(e) => setFormData({ ...formData, orderPrograms: Number(e.target.value) })} className="h-8 text-center font-bold text-blue-600" /></div>
-              <div className="bg-white p-2 rounded-lg border shadow-sm"><label className="text-[10px] font-bold text-gray-500 uppercase">กิจกรรม</label><Input type="number" value={formData.orderActivities || 4} onChange={(e) => setFormData({ ...formData, orderActivities: Number(e.target.value) })} className="h-8 text-center font-bold text-blue-600" /></div>
-              <div className="bg-white p-2 rounded-lg border shadow-sm"><label className="text-[10px] font-bold text-gray-500 uppercase">บุคลากร</label><Input type="number" value={formData.orderStaff || 5} onChange={(e) => setFormData({ ...formData, orderStaff: Number(e.target.value) })} className="h-8 text-center font-bold text-blue-600" /></div>
+              <div className="bg-white p-2 rounded-lg border shadow-sm"><label className="text-[10px] font-bold text-gray-500 uppercase">แนะนำโปรแกรม</label><Input type="number" value={formData.orderPrograms || 2} onChange={(e) => setFormData({ ...formData, orderPrograms: Number(e.target.value) })} className="h-8 text-center font-bold text-blue-600" /></div>
+              <div className="bg-white p-2 rounded-lg border shadow-sm"><label className="text-[10px] font-bold text-gray-500 uppercase">กิจกรรม</label><Input type="number" value={formData.orderActivities || 3} onChange={(e) => setFormData({ ...formData, orderActivities: Number(e.target.value) })} className="h-8 text-center font-bold text-blue-600" /></div>
+              <div className="bg-white p-2 rounded-lg border shadow-sm"><label className="text-[10px] font-bold text-gray-500 uppercase">บุคลากร</label><Input type="number" value={formData.orderStaff || 4} onChange={(e) => setFormData({ ...formData, orderStaff: Number(e.target.value) })} className="h-8 text-center font-bold text-blue-600" /></div>
+              <div className="bg-white p-2 rounded-lg border shadow-sm"><label className="text-[10px] font-bold text-gray-500 uppercase">เอกสารดาวน์โหลด</label><Input type="number" value={formData.orderDocuments || 5} onChange={(e) => setFormData({ ...formData, orderDocuments: Number(e.target.value) })} className="h-8 text-center font-bold text-blue-600" /></div>
+              <div className="bg-white p-2 rounded-lg border shadow-sm"><label className="text-[10px] font-bold text-gray-500 uppercase">โครงการ</label><Input type="number" value={formData.orderProjects || 6} onChange={(e) => setFormData({ ...formData, orderProjects: Number(e.target.value) })} className="h-8 text-center font-bold text-blue-600" /></div>
+              <div className="bg-white p-2 rounded-lg border shadow-sm"><label className="text-[10px] font-bold text-gray-500 uppercase">ข้อมูลอื่นๆ</label><Input type="number" value={formData.orderOthers || 7} onChange={(e) => setFormData({ ...formData, orderOthers: Number(e.target.value) })} className="h-8 text-center font-bold text-blue-600" /></div>
             </div>
           </div>
 

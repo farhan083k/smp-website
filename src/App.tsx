@@ -4,8 +4,6 @@ import { auth } from './lib/firebase';
 import { SettingsProvider, useSettings } from './contexts/SettingsContext'; // 👈 นำเข้า useSettings
 import Header from './sections/Header';
 import Hero from './sections/Hero';
-import Projects from './sections/Projects';
-import Others from './sections/Others';
 import Footer from './sections/Footer';
 import SectionRenderer from './sections/SectionRenderer';
 
@@ -63,8 +61,6 @@ function AppContent() {
         {/* เราจะแทรกข่าวประชาสัมพันธ์ตรงนี้ครับ 👇 */}
         {/* 5 ระบบที่เราทำตั้งค่าจัดเรียงไว้ จะถูกดึงมาโชว์ตรงนี้ */}
         <SectionRenderer isLoggedIn={isLoggedIn} />        
-        <Projects isLoggedIn={isLoggedIn} />
-        <Others isLoggedIn={isLoggedIn} />
       </main>
       
       <Footer />
