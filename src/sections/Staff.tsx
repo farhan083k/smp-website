@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
 import { db, uploadStaffImage } from '../lib/firebase';
-import { Plus, Edit2, Trash2, Loader2, Upload, UserCircle, X } from 'lucide-react'; // 👈 เพิ่ม X เข้ามา
+import { Plus, Edit2, Trash2, Loader2, Upload, UserCircle, X, ChevronDown } from 'lucide-react'; // 👈 เพิ่ม ChevronDown เข้ามา
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -14,9 +14,12 @@ export default function Staff({ isLoggedIn }: { isLoggedIn: boolean }) {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 👇 เพิ่ม State สำหรับระบบ Lightbox ขยายรูปภาพ
+  // 🖼️ State สำหรับ Lightbox
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [currentImage, setCurrentImage] = useState<string>('');
+
+  // 👇 🚀 State สำหรับกำหนดจำนวนที่จะแสดงผล (เริ่มต้นที่ 8 คน)
+  const [visibleCount, setVisibleCount] = useState(8);
 
   useEffect(() => {
     const q = query(collection(db, 'staff'), orderBy('order', 'asc'));
@@ -39,14 +42,12 @@ export default function Staff({ isLoggedIn }: { isLoggedIn: boolean }) {
 
   const handleSave = async () => {
     if (!editForm.name || !editForm.position) return alert("กรุณากรอกชื่อและตำแหน่งให้ครบถ้วน");
-
     const staffData = {
       name: editForm.name,
       position: editForm.position,
       image: editForm.image || '',
       order: editForm.order || 99,
     };
-
     try {
       if (editingId) { await updateDoc(doc(db, 'staff', editingId), staffData); } 
       else { await addDoc(collection(db, 'staff'), { ...staffData, createdAt: new Date().toISOString() }); }
@@ -72,7 +73,6 @@ export default function Staff({ isLoggedIn }: { isLoggedIn: boolean }) {
     setIsEditing(true);
   };
 
-  // 👇 ฟังก์ชันเปิดรูปใหญ่
   const openLightbox = (imageUrl: string) => {
     if (!imageUrl) return;
     setCurrentImage(imageUrl);
@@ -92,36 +92,49 @@ export default function Staff({ isLoggedIn }: { isLoggedIn: boolean }) {
         </div>
 
         {staff.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-            {staff.map((person) => (
-              <div key={person.id} className="bg-gray-50 rounded-2xl p-6 text-center shadow-sm border border-gray-100 relative group hover:shadow-md transition-shadow">
-                
-                {/* 👇 รูปโปรไฟล์ (เพิ่ม cursor-pointer และ onClick ให้กดได้) */}
-                <div 
-                  className="w-32 h-32 mx-auto rounded-full overflow-hidden mb-4 border-4 border-white shadow-md bg-gray-200 cursor-pointer hover:scale-105 transition-transform"
-                  onClick={() => openLightbox(person.image)}
-                >
-                  {person.image ? (
-                    <img src={person.image} alt={person.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
-                      <UserCircle className="w-16 h-16" />
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+              {/* 👇 ใช้ .slice(0, visibleCount) เพื่อตัดเอาเฉพาะจำนวนที่กำหนดมาแสดง */}
+              {staff.slice(0, visibleCount).map((person) => (
+                <div key={person.id} className="bg-gray-50 rounded-2xl p-6 text-center shadow-sm border border-gray-100 relative group hover:shadow-md transition-shadow">
+                  <div 
+                    className="w-32 h-32 mx-auto rounded-full overflow-hidden mb-4 border-4 border-white shadow-md bg-gray-200 cursor-pointer hover:scale-105 transition-transform"
+                    onClick={() => openLightbox(person.image)}
+                  >
+                    {person.image ? (
+                      <img src={person.image} alt={person.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
+                        <UserCircle className="w-16 h-16" />
+                      </div>
+                    )}
+                  </div>
+                  <h3 className="text-lg font-bold text-[#2C3E50]">{person.name}</h3>
+                  <p className="text-sm text-[#3498DB] font-medium mt-1">{person.position}</p>
+
+                  {isLoggedIn && (
+                    <div className="absolute top-4 right-4 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => openEditDialog(person)} className="p-2 bg-white text-blue-600 rounded-full shadow hover:bg-blue-50"><Edit2 className="h-4 w-4" /></button>
+                      <button onClick={() => handleDelete(person.id)} className="p-2 bg-white text-red-500 rounded-full shadow hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
                     </div>
                   )}
                 </div>
-                
-                <h3 className="text-lg font-bold text-[#2C3E50]">{person.name}</h3>
-                <p className="text-sm text-[#3498DB] font-medium mt-1">{person.position}</p>
+              ))}
+            </div>
 
-                {isLoggedIn && (
-                  <div className="absolute top-4 right-4 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => openEditDialog(person)} className="p-2 bg-white text-blue-600 rounded-full shadow hover:bg-blue-50"><Edit2 className="h-4 w-4" /></button>
-                    <button onClick={() => handleDelete(person.id)} className="p-2 bg-white text-red-500 rounded-full shadow hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
-                  </div>
-                )}
+            {/* 👇 🚀 ปุ่มดูบุคลากรเพิ่มเติม (จะโชว์ก็ต่อเมื่อมีบุคลากรมากกว่าที่กำลังแสดงอยู่) */}
+            {staff.length > visibleCount && (
+              <div className="text-center mt-12">
+                <Button 
+                  onClick={() => setVisibleCount(prev => prev + 8)} 
+                  variant="outline" 
+                  className="px-8 py-6 rounded-full border-2 border-gray-300 text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-all duration-300 shadow-sm"
+                >
+                  ดูบุคลากรเพิ่มเติม ({staff.length - visibleCount} ท่าน) <ChevronDown className="ml-2 h-5 w-5 animate-bounce" />
+                </Button>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         ) : (
           <div className="text-center py-16 text-gray-500 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
             <UserCircle className="h-16 w-16 mx-auto mb-4 text-gray-300" />
@@ -130,22 +143,19 @@ export default function Staff({ isLoggedIn }: { isLoggedIn: boolean }) {
         )}
       </div>
 
-      {/* 👇 🖼️ Lightbox Dialog สำหรับดูรูปบุคลากรขยายใหญ่ */}
+      {/* 🖼️ Lightbox Dialog (เหมือนเดิม) */}
       <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
         <DialogContent className="max-w-3xl w-[90vw] h-[80vh] p-0 bg-black/95 border-none flex flex-col justify-center items-center">
           <div className="relative w-full h-full flex items-center justify-center group">
             {currentImage && <img src={currentImage} className="max-h-full max-w-full object-contain p-4" alt="Staff Preview" />}
-            <button 
-              onClick={() => setLightboxOpen(false)} 
-              className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-red-500 text-white rounded-full z-50 transition-colors"
-            >
+            <button onClick={() => setLightboxOpen(false)} className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-red-500 text-white rounded-full z-50 transition-colors">
               <X className="h-6 w-6" />
             </button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* 📝 หน้าต่าง Pop-up สำหรับเพิ่ม/แก้ไข (เหมือนเดิม) */}
+      {/* 📝 Admin Pop-up (เหมือนเดิม) */}
       <Dialog open={isEditing} onOpenChange={setIsEditing}>
         <DialogContent className="sm:max-w-md admin-panel border-none shadow-2xl">
           <DialogHeader><DialogTitle>{editingId ? 'แก้ไขข้อมูลบุคลากร' : 'เพิ่มบุคลากรใหม่'}</DialogTitle></DialogHeader>
