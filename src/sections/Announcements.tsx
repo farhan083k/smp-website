@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'; // 👈 นำเข้าระบบจัดการไฟล์ของ Firebase
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, uploadMultipleImages } from '../lib/firebase'; 
-import { Plus, Edit2, Trash2, Bell, Calendar, Image as ImageIcon, Loader2, Upload, X, FileText, ExternalLink, Download, Link as LinkIcon, Paperclip } from 'lucide-react'; // 👈 นำเข้าไอคอนใหม่ๆ
+import { Plus, Edit2, Trash2, Bell, Calendar, Image as ImageIcon, Loader2, Upload, X, FileText, ExternalLink, Download, Link as LinkIcon, Paperclip, ChevronDown } from 'lucide-react'; // 👈 เพิ่ม ChevronDown
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,16 +11,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 export default function Announcements({ isLoggedIn }: { isLoggedIn: boolean }) {
   const [announcements, setAnnouncements] = useState<any[]>([]);
   
+  // 👇 🚀 State สำหรับกำหนดจำนวนข่าวที่จะแสดงผล (เริ่มต้นที่ 3 ข่าว)
+  const [visibleCount, setVisibleCount] = useState(3);
+
   // State สำหรับแอดมิน
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<any>({});
   
-  const [isUploading, setIsUploading] = useState(false); // โหลดรูปภาพ
-  const [isUploadingFile, setIsUploadingFile] = useState(false); // โหลดไฟล์เอกสาร
+  const [isUploading, setIsUploading] = useState(false); 
+  const [isUploadingFile, setIsUploadingFile] = useState(false); 
   
-  const fileInputRef = useRef<HTMLInputElement>(null); // Ref สำหรับรูปภาพ
-  const docInputRef = useRef<HTMLInputElement>(null); // Ref สำหรับไฟล์เอกสาร
+  const fileInputRef = useRef<HTMLInputElement>(null); 
+  const docInputRef = useRef<HTMLInputElement>(null); 
 
   // State สำหรับผู้ใช้ทั่วไป (กดดูรายละเอียด)
   const [isViewOpen, setIsViewOpen] = useState(false);
@@ -34,7 +37,6 @@ export default function Announcements({ isLoggedIn }: { isLoggedIn: boolean }) {
     return () => unsubscribe();
   }, []);
 
-  // 🖼️ อัปโหลดรูปภาพ
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -46,7 +48,6 @@ export default function Announcements({ isLoggedIn }: { isLoggedIn: boolean }) {
     finally { setIsUploading(false); }
   };
 
-  // 📄 อัปโหลดไฟล์เอกสาร (PDF, Word, Excel)
   const handleDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -57,10 +58,7 @@ export default function Announcements({ isLoggedIn }: { isLoggedIn: boolean }) {
       await uploadBytes(fileRef, file);
       const url = await getDownloadURL(fileRef);
       setEditForm({ ...editForm, fileUrl: url, fileName: file.name });
-    } catch (error) { 
-      console.error(error);
-      alert("อัปโหลดเอกสารไม่สำเร็จ"); 
-    } 
+    } catch (error) { alert("อัปโหลดเอกสารไม่สำเร็จ"); } 
     finally { setIsUploadingFile(false); }
   };
 
@@ -119,50 +117,65 @@ export default function Announcements({ isLoggedIn }: { isLoggedIn: boolean }) {
         </div>
 
         {announcements.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {announcements.map((item) => (
-              <div key={item.id} onClick={() => openViewDialog(item)} className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 relative group cursor-pointer flex flex-col overflow-hidden border border-gray-100 hover:-translate-y-1">
-                {item.image ? (
-                  <div className="h-48 w-full overflow-hidden">
-                    <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                  </div>
-                ) : (
-                  <div className="h-2 bg-[var(--primary)] w-full"></div>
-                )}
-                
-                <div className="p-6 flex-1 flex flex-col">
-                  {/* แถบไอคอน วันที่ + แนบไฟล์ + แนบลิงก์ */}
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    <div className="flex items-center text-xs text-gray-500 font-medium bg-gray-50 px-2 py-1 rounded-full">
-                      <Calendar className="h-3 w-3 mr-1.5 text-[var(--primary)]" /> {formatDate(item.createdAt)}
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* 👇 ใช้ slice ตัดจำนวนข่าวที่จะโชว์ตาม visibleCount */}
+              {announcements.slice(0, visibleCount).map((item) => (
+                <div key={item.id} onClick={() => openViewDialog(item)} className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 relative group cursor-pointer flex flex-col overflow-hidden border border-gray-100 hover:-translate-y-1">
+                  {item.image ? (
+                    <div className="h-48 w-full overflow-hidden">
+                      <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     </div>
-                    {item.fileUrl && (
-                      <div className="flex items-center text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full border border-green-100" title="มีเอกสารแนบ">
-                        <Paperclip className="h-3 w-3 mr-1" /> มีไฟล์แนบ
+                  ) : (
+                    <div className="h-2 bg-[var(--primary)] w-full"></div>
+                  )}
+                  
+                  <div className="p-6 flex-1 flex flex-col">
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      <div className="flex items-center text-xs text-gray-500 font-medium bg-gray-50 px-2 py-1 rounded-full">
+                        <Calendar className="h-3 w-3 mr-1.5 text-[var(--primary)]" /> {formatDate(item.createdAt)}
                       </div>
-                    )}
-                    {item.linkUrl && (
-                      <div className="flex items-center text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full border border-blue-100" title="มีลิงก์แนบ">
-                        <LinkIcon className="h-3 w-3 mr-1" /> ลิงก์
-                      </div>
-                    )}
+                      {item.fileUrl && (
+                        <div className="flex items-center text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full border border-green-100" title="มีเอกสารแนบ">
+                          <Paperclip className="h-3 w-3 mr-1" /> มีไฟล์แนบ
+                        </div>
+                      )}
+                      {item.linkUrl && (
+                        <div className="flex items-center text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full border border-blue-100" title="มีลิงก์แนบ">
+                          <LinkIcon className="h-3 w-3 mr-1" /> ลิงก์
+                        </div>
+                      )}
+                    </div>
+                    
+                    <h3 className="text-lg font-bold text-[#2C3E50] mb-2 line-clamp-2">{item.title}</h3>
+                    <p className="text-gray-500 text-sm line-clamp-3 mb-4 flex-1">{item.content}</p>
+                    
+                    <span className="text-[var(--primary)] text-sm font-bold flex items-center mt-auto">อ่านเพิ่มเติม &rarr;</span>
                   </div>
-                  
-                  <h3 className="text-lg font-bold text-[#2C3E50] mb-2 line-clamp-2">{item.title}</h3>
-                  <p className="text-gray-500 text-sm line-clamp-3 mb-4 flex-1">{item.content}</p>
-                  
-                  <span className="text-[var(--primary)] text-sm font-bold flex items-center mt-auto">อ่านเพิ่มเติม &rarr;</span>
-                </div>
 
-                {isLoggedIn && (
-                  <div className="absolute top-4 right-4 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={(e) => { e.stopPropagation(); openEditDialog(item); }} className="p-2 bg-white/90 text-blue-600 rounded-full shadow hover:bg-blue-50 backdrop-blur-sm"><Edit2 className="h-4 w-4" /></button>
-                    <button onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }} className="p-2 bg-white/90 text-red-500 rounded-full shadow hover:bg-red-50 backdrop-blur-sm"><Trash2 className="h-4 w-4" /></button>
-                  </div>
-                )}
+                  {isLoggedIn && (
+                    <div className="absolute top-4 right-4 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={(e) => { e.stopPropagation(); openEditDialog(item); }} className="p-2 bg-white/90 text-blue-600 rounded-full shadow hover:bg-blue-50 backdrop-blur-sm"><Edit2 className="h-4 w-4" /></button>
+                      <button onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }} className="p-2 bg-white/90 text-red-500 rounded-full shadow hover:bg-red-50 backdrop-blur-sm"><Trash2 className="h-4 w-4" /></button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* 👇 🚀 ปุ่มดูประกาศอื่นเพิ่มเติม จะโชว์เมื่อมีข่าวมากกว่าจำนวนที่กำลังโชว์อยู่ */}
+            {announcements.length > visibleCount && (
+              <div className="text-center mt-12">
+                <Button 
+                  onClick={() => setVisibleCount(prev => prev + 3)} 
+                  variant="outline" 
+                  className="px-8 py-6 rounded-full border-2 border-gray-300 text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-all duration-300 shadow-sm"
+                >
+                  ดูประกาศอื่นเพิ่มเติม ({announcements.length - visibleCount} ประกาศ) <ChevronDown className="ml-2 h-5 w-5 animate-bounce" />
+                </Button>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         ) : (
           <div className="text-center py-12 text-gray-500 bg-white rounded-2xl border-2 border-dashed border-gray-200">
             <Bell className="h-12 w-12 mx-auto mb-3 text-gray-300" />
@@ -192,7 +205,6 @@ export default function Announcements({ isLoggedIn }: { isLoggedIn: boolean }) {
             <DialogTitle className="text-2xl sm:text-3xl font-bold text-[#2C3E50] leading-tight">{viewItem?.title}</DialogTitle>
             <div className="prose prose-blue max-w-none text-gray-600 leading-relaxed whitespace-pre-line text-base sm:text-lg">{viewItem?.content}</div>
             
-            {/* 👇 ส่วนแสดงปุ่มลิงก์และดาวน์โหลดเอกสาร */}
             {(viewItem?.linkUrl || viewItem?.fileUrl) && (
               <div className="mt-8 pt-6 border-t border-gray-100 flex flex-col sm:flex-row gap-3">
                 {viewItem?.fileUrl && (
@@ -218,7 +230,6 @@ export default function Announcements({ isLoggedIn }: { isLoggedIn: boolean }) {
           <div className="space-y-5 pt-4">
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* อัปโหลดรูปภาพ (ฝั่งซ้าย) */}
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-2 block">รูปภาพประกอบ (หน้าปก)</label>
                 <div className="relative h-32 w-full rounded-xl border-2 border-dashed border-gray-300 overflow-hidden bg-gray-50 group flex items-center justify-center cursor-pointer hover:bg-gray-100" onClick={() => fileInputRef.current?.click()}>
@@ -231,7 +242,6 @@ export default function Announcements({ isLoggedIn }: { isLoggedIn: boolean }) {
                 {editForm.image && <button onClick={() => setEditForm({ ...editForm, image: '' })} className="text-xs text-red-500 mt-1 font-bold hover:underline">ลบรูปภาพนี้</button>}
               </div>
 
-              {/* อัปโหลดไฟล์เอกสาร (ฝั่งขวา) */}
               <div className="flex flex-col justify-end space-y-4">
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-2 block">ไฟล์เอกสารแนบ (PDF, Word, Excel)</label>
